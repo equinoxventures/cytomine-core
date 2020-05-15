@@ -344,4 +344,19 @@ class RestAbstractImageController extends RestController {
         responseSuccess([:])
     }
 
+    @RestApiMethod(description="Regenerate main image field from image properties")
+    @RestApiParams(params=[
+            @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH, description = "The image id"),
+            @RestApiParam(name="deep", type="boolean", paramType = RestApiParamType.PATH, description = "True to fill property slice fields"),
+    ])
+    @RestApiResponseObject(objectIdentifier = "empty")
+    def regenerateProperties () {
+        AbstractImage abstractImage = abstractImageService.read(params.long('id'))
+        if (abstractImage) {
+            imagePropertiesService.regenerate(abstractImage, params.boolean('deep', false))
+            responseSuccess([:])
+        } else {
+            responseNotFound("Image", params.id)
+        }
+    }
 }

@@ -86,6 +86,9 @@ class AbstractImageUrlMappings {
         "/api/abstractimage/$id/properties/extract.$format"(controller:"restAbstractImage"){
             action = [POST:"extractProperties"]
         }
+        "/api/abstractimage/$id/properties/regenerate.$format"(controller:"restAbstractImage"){
+            action = [POST:"regenerateProperties"]
+        }
 
         // DEPRECATED: use POST /api/abstractimage/$id.$format instead
 //        "/api/uploadedfile/$uploadedFile/image.$format"(controller:"restUploadedFile"){
