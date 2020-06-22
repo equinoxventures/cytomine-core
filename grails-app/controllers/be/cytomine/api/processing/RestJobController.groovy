@@ -158,7 +158,7 @@ class RestJobController extends RestController {
         @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH,description = "The job id")
     ])
     def update() {
-        log.info "update"
+        log.debug "update"
         update(jobService, request.JSON)
     }
 

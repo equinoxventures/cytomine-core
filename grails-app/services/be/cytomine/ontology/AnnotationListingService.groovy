@@ -93,7 +93,7 @@ class AnnotationListingService extends ModelService {
         def excludedColumns = ['annotationTerms', 'annotationTracks', 'userTerm', 'x', 'y']
 
         def sql = new Sql(dataSource)
-        log.info request
+        log.debug request
         sql.eachRow(request) {
 
 

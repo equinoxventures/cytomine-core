@@ -272,16 +272,16 @@ abstract class ModelService {
      */
     def edit(CytomineDomain domain, boolean printMessage) {
         //Build response message
-        log.info "edit"
+        log.debug "edit"
 
-        log.info "beforeUpdate"
+        log.debug "beforeUpdate"
         beforeUpdate(domain)
-        log.info "saveDomain"
+        log.debug "saveDomain"
         saveDomain(domain)
-        log.info "afterUpdate"
+        log.debug "afterUpdate"
         def response = responseService.createResponseMessage(domain, getStringParamsI18n(domain), printMessage, "Edit", domain.getCallBack())
         afterUpdate(domain,response)
-        log.info "response"
+        log.debug "response"
         return response
     }
 
@@ -312,8 +312,8 @@ abstract class ModelService {
                 errors << [data:json[i], message : e.msg]
                 resp = [message : e.msg, status : e.code]
             } catch(Exception e) {
-                log.info e
-                log.info e.printStackTrace()
+                log.error e
+                e.printStackTrace()
                 resp = [message : e.toString(), status : 500]
             }
 
