@@ -24,6 +24,7 @@ import be.cytomine.CytomineDomain
 import be.cytomine.Exception.WrongArgumentException
 import be.cytomine.meta.AttachedFile
 import grails.converters.JSON
+import org.codehaus.groovy.grails.web.json.JSONObject
 import org.restapidoc.annotation.*
 import org.restapidoc.pojo.RestApiParamType
 import org.springframework.web.multipart.support.AbstractMultipartHttpServletRequest
@@ -94,10 +95,10 @@ class RestAttachedFileController extends RestController {
     @RestApiResponseObject(objectIdentifier = "file")
     def download() {
         AttachedFile attached = attachedFileService.read(params.get('id'))
-        if(!attached) {
+        if(!attached || !attached.file?.exists()) {
             responseNotFound("AttachedFile",params.get('id'))
         } else {
-            responseFile(attached.filename, attached.data)
+            responseFile(attached.filename, attached.file.bytes)
         }
     }
 
@@ -113,13 +114,15 @@ class RestAttachedFileController extends RestController {
         String key = params.get("key")
 
         if(request instanceof AbstractMultipartHttpServletRequest) {
-            def f = ((AbstractMultipartHttpServletRequest) request).getFile('files[]')
+            AbstractMultipartHttpServletRequest multipart = (AbstractMultipartHttpServletRequest) request
+            def f = multipart.getFile('files[]')
+            if (f.isEmpty()) {
+                return responseError(new WrongArgumentException("No file attached"))
+            }
 
-            if(domainClassName == null) domainClassName = ((AbstractMultipartHttpServletRequest) request).getParameter('domainClassName')
-            if(domainIdent == null) domainIdent = Long.parseLong(((AbstractMultipartHttpServletRequest) request).getParameter('domainIdent'))
-
-            String filename = ((AbstractMultipartHttpServletRequest) request).getParameter('filename')
-            if(!filename) filename = f.originalFilename
+            domainClassName = domainClassName ?: multipart.getParameter('domainClassName')
+            domainIdent = domainIdent ?: Long.parseLong(multipart.getParameter('domainIdent'))
+            String filename = multipart.getParameter('filename') ?: f.originalFilename
 
             log.info "Upload $filename for domain $domainClassName $domainIdent"
             log.info "File size = ${f.size}"
@@ -132,8 +135,14 @@ class RestAttachedFileController extends RestController {
             } else {
                 securityACLService.checkFullOrRestrictedForOwner(domainIdent,domainClassName, "user")
             }
-            def result = attachedFileService.add(filename,f.getBytes(),key,domainIdent,domainClassName)
-            responseSuccess(result)
+            def json = new JSONObject([
+                    domainIdent: domainIdent,
+                    domainClassName: domainClassName,
+                    filename: filename,
+                    size: f.getSize(),
+                    key: key
+            ])
+            responseSuccess(attachedFileService.add(json, f))
         } else {
             responseError(new WrongArgumentException("No File attached"))
         }
