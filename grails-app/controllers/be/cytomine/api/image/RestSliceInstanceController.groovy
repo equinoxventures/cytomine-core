@@ -155,15 +155,15 @@ class RestSliceInstanceController extends RestController {
         }
     }
 
-    def windowUrl() {
-        SliceInstance sliceInstance = sliceInstanceService.read(params.long("id"))
-        if (sliceInstance) {
-            String url = imageServerService.window(sliceInstance, params, true)
-            responseSuccess([url : url])
-        } else {
-            responseNotFound("SliceInstance", params.id)
-        }
-    }
+//    def windowUrl() {
+//        SliceInstance sliceInstance = sliceInstanceService.read(params.long("id"))
+//        if (sliceInstance) {
+//            String url = imageServerService.window(sliceInstance, params, true)
+//            responseSuccess([url : url])
+//        } else {
+//            responseNotFound("SliceInstance", params.id)
+//        }
+//    }
 
     def window() {
         SliceInstance sliceInstance = sliceInstanceService.read(params.long("id"))
@@ -179,26 +179,26 @@ class RestSliceInstanceController extends RestController {
         }
     }
 
-    def cameraUrl() {
-        SliceInstance sliceInstance = sliceInstanceService.read(params.long("id"))
-        if (sliceInstance) {
-            params.withExterior = false
-            String url = imageServerService.window(sliceInstance, params, true)
-            responseSuccess([url : url])
-        } else {
-            responseNotFound("SliceInstance", params.id)
-        }
-    }
-
-    def camera() {
-        SliceInstance sliceInstance = sliceInstanceService.read(params.long("id"))
-        if (sliceInstance) {
-            params.withExterior = false
-            responseImage(imageServerService.window(sliceInstance, params, false))
-        } else {
-            responseNotFound("SliceInstance", params.id)
-        }
-    }
+//    def cameraUrl() {
+//        SliceInstance sliceInstance = sliceInstanceService.read(params.long("id"))
+//        if (sliceInstance) {
+//            params.withExterior = false
+//            String url = imageServerService.window(sliceInstance, params, true)
+//            responseSuccess([url : url])
+//        } else {
+//            responseNotFound("SliceInstance", params.id)
+//        }
+//    }
+//
+//    def camera() {
+//        SliceInstance sliceInstance = sliceInstanceService.read(params.long("id"))
+//        if (sliceInstance) {
+//            params.withExterior = false
+//            responseImage(imageServerService.window(sliceInstance, params, false))
+//        } else {
+//            responseNotFound("SliceInstance", params.id)
+//        }
+//    }
 
     //todo : move into a service
     def userAnnotationService

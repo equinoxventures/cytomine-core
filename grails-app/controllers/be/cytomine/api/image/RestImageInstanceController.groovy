@@ -321,16 +321,16 @@ class RestImageInstanceController extends RestController {
 
     }
 
-    def windowUrl() {
-        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
-        if (imageInstance) {
-            String url = imageServerService.window(imageInstance.baseImage, params, true)
-            responseSuccess([url : url])
-        } else {
-            responseNotFound("Image", params.id)
-        }
-
-    }
+//    def windowUrl() {
+//        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+//        if (imageInstance) {
+//            String url = imageServerService.window(imageInstance.baseImage, params, true)
+//            responseSuccess([url : url])
+//        } else {
+//            responseNotFound("Image", params.id)
+//        }
+//
+//    }
 
     def window() {
         ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
@@ -348,26 +348,26 @@ class RestImageInstanceController extends RestController {
         }
     }
 
-    def cameraUrl() {
-        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
-        if (imageInstance) {
-            params.withExterior = false
-            String url = imageServerService.window(imageInstance.baseImage, params, true)
-            responseSuccess([url : url])
-        } else {
-            responseNotFound("Image", params.id)
-        }
-    }
-
-    def camera() {
-        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
-        if (imageInstance) {
-            params.withExterior = false
-            responseImage(imageServerService.window(imageInstance.baseImage, params, false))
-        } else {
-            responseNotFound("Image", params.id)
-        }
-    }
+//    def cameraUrl() {
+//        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+//        if (imageInstance) {
+//            params.withExterior = false
+//            String url = imageServerService.window(imageInstance.baseImage, params, true)
+//            responseSuccess([url : url])
+//        } else {
+//            responseNotFound("Image", params.id)
+//        }
+//    }
+//
+//    def camera() {
+//        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+//        if (imageInstance) {
+//            params.withExterior = false
+//            responseImage(imageServerService.window(imageInstance.baseImage, params, false))
+//        } else {
+//            responseNotFound("Image", params.id)
+//        }
+//    }
 
     //todo : move into a service
     public List<Geometry> getWKTGeometry(ImageInstance imageInstance, GrailsParameterMap params) {
