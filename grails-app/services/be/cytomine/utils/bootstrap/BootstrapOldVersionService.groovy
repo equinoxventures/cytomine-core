@@ -69,6 +69,7 @@ class BootstrapOldVersionService {
     def tableService
     def mongo
     def noSQLCollectionService
+    def bootstrapDataService
 
     void execChangeForOldVersion() {
         def methods = this.metaClass.methods*.name.sort().unique()
@@ -101,6 +102,16 @@ class BootstrapOldVersionService {
         }
     }
 
+
+    def initv3_XXX_YYY() {
+        log.info "Migration to v3.XXXX"
+        def sql = new Sql(dataSource)
+        sql.executeUpdate("UPDATE image_filter SET available = true WHERE available IS NULL;")
+        bootstrapUtilsService.updateSqlColumnConstraint("image_filter", "available", "DROP NOT NULL")
+        sql.close()
+
+        bootstrapDataService.initImageFilters()
+    }
 
     def initv3_2_0() {
         log.info "Migration to V3.2.0"

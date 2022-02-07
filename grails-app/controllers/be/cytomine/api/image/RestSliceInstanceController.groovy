@@ -50,7 +50,8 @@ class RestSliceInstanceController extends RestController {
     def listByImageInstance() {
         ImageInstance image = imageInstanceService.read(params.long('id'))
         if (image) {
-            responseSuccess(sliceInstanceService.list(image))
+            def result = sliceInstanceService.list(image, null, null, params.long('max'), params.long('offset'))
+            responseSuccess([collection : result.data, size : result.total, offset: result.offset, perPage: result.perPage, totalPages: result.totalPages])
         }
         else {
             responseNotFound("SliceInstance", "ImageInstance", params.id)
@@ -137,8 +138,8 @@ class RestSliceInstanceController extends RestController {
             parameters.contrast = params.double('contrast')
             parameters.gamma = params.double('gamma')
             parameters.bits = (params.bits == "max") ? "max" : params.int('bits')
-            parameters.refresh = params.boolean('refresh', false)
-            responseByteArray(imageServerService.thumb(sliceInstance, parameters))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.thumb(sliceInstance, parameters, etag))
         } else {
             responseNotFound("SliceInstance", params.id)
         }
@@ -147,7 +148,8 @@ class RestSliceInstanceController extends RestController {
     def crop() {
         SliceInstance sliceInstance = sliceInstanceService.read(params.long("id"))
         if (sliceInstance) {
-            responseByteArray(imageServerService.crop(sliceInstance, params))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.crop(sliceInstance, params, false, false, etag))
         } else {
             responseNotFound("SliceInstance", params.id)
         }
@@ -166,9 +168,12 @@ class RestSliceInstanceController extends RestController {
     def window() {
         SliceInstance sliceInstance = sliceInstanceService.read(params.long("id"))
         if (sliceInstance) {
-            if (params.mask || params.alphaMask || params.alphaMask || params.draw || params.type in ['draw', 'mask', 'alphaMask', 'alphamask'])
-                params.location = getWKTGeometry(sliceInstance, params)
-            responseByteArray(imageServerService.window(sliceInstance, params, false))
+            def annotationType = imageServerService.checkType(params)
+            if (annotationType != 'crop') {
+                params.geometries = getWKTGeometry(sliceInstance, params)
+            }
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.window(sliceInstance, params, false, etag))
         } else {
             responseNotFound("SliceInstance", params.id)
         }
@@ -189,7 +194,7 @@ class RestSliceInstanceController extends RestController {
         SliceInstance sliceInstance = sliceInstanceService.read(params.long("id"))
         if (sliceInstance) {
             params.withExterior = false
-            responseByteArray(imageServerService.window(sliceInstance, params, false))
+            responseImage(imageServerService.window(sliceInstance, params, false))
         } else {
             responseNotFound("SliceInstance", params.id)
         }
@@ -201,7 +206,7 @@ class RestSliceInstanceController extends RestController {
     def termService
     def secUserService
     def annotationListingService
-    public String getWKTGeometry(SliceInstance sliceInstance, params) {
+    public List<Geometry> getWKTGeometry(SliceInstance sliceInstance, params) {
         def geometries = []
         if (params.annotations && !params.reviewed) {
             def idAnnotations = params.annotations.split(',')
@@ -236,23 +241,10 @@ class RestSliceInstanceController extends RestController {
             }
             List<Long> sliceIDS = [sliceInstance.id]
 
-            log.info params
-            //Create a geometry corresponding to the ROI of the request (x,y,w,h)
-            int x
-            int y
-            int w
-            int h
-            try {
-                x = params.int('topLeftX')
-                y = params.int('topLeftY')
-                w = params.int('width')
-                h = params.int('height')
-            }catch (Exception e) {
-                x = params.int('x')
-                y = params.int('y')
-                w = params.int('w')
-                h = params.int('h')
-            }
+            def x = params.int('x')
+            def y = params.int('y')
+            def w = params.int('w')
+            def h = params.int('h')
             Geometry roiGeometry = GeometryUtils.createBoundingBox(
                     x,                                      //minX
                     x + w,                                  //maxX
@@ -279,13 +271,10 @@ class RestSliceInstanceController extends RestController {
                 log.info "userIDS=${userIDS}"
                 Collection<UserAnnotation> annotations = userAnnotationService.list(sliceInstance, roiGeometry, termsIDS, userIDS)
                 log.info "annotations=${annotations.size()}"
-                geometries = annotations.collect { geometry ->
-                    geometry.getLocation()
-                }
+                geometries = annotations.collect { it.location }
             }
         }
-        GeometryCollection geometryCollection = new GeometryCollection((Geometry[])geometries, new GeometryFactory())
-        return new WKTWriter().write(geometryCollection)
+        return geometries
     }
 
 //    def download() {

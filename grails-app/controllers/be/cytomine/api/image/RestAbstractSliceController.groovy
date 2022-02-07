@@ -157,8 +157,8 @@ class RestAbstractSliceController extends RestController {
             parameters.contrast = params.double('contrast')
             parameters.gamma = params.double('gamma')
             parameters.bits = (params.bits == "max") ? "max" : params.int('bits')
-            parameters.refresh = params.boolean('refresh', false)
-            responseByteArray(imageServerService.thumb(abstractSlice, parameters))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.thumb(abstractSlice, parameters, etag))
         } else {
             responseNotFound("AbstractSlice", params.id)
         }
@@ -167,7 +167,8 @@ class RestAbstractSliceController extends RestController {
     def crop() {
         AbstractSlice abstractSlice = abstractSliceService.read(params.long("id"))
         if (abstractSlice) {
-            responseByteArray(imageServerService.crop(abstractSlice, params))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.crop(abstractSlice, params, false, false, etag))
         } else {
             responseNotFound("AbstractSlice", params.id)
         }
@@ -186,7 +187,8 @@ class RestAbstractSliceController extends RestController {
     def window() {
         AbstractSlice abstractSlice = abstractSliceService.read(params.long("id"))
         if (abstractSlice) {
-            responseByteArray(imageServerService.window(abstractSlice, params, false))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.window(abstractSlice, params, false, etag))
         } else {
             responseNotFound("AbstractSlice", params.id)
         }
@@ -207,7 +209,7 @@ class RestAbstractSliceController extends RestController {
         AbstractSlice abstractSlice = abstractSliceService.read(params.long("id"))
         if (abstractSlice) {
             params.withExterior = false
-            responseByteArray(imageServerService.window(abstractSlice, params, false))
+            responseImage(imageServerService.window(abstractSlice, params, false))
         } else {
             responseNotFound("AbstractSlice", params.id)
         }

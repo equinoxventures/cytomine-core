@@ -51,7 +51,7 @@ class SliceInstance extends CytomineDomain implements Serializable {
     void checkAlreadyExist() {
         withNewSession {
             SliceInstance slice = SliceInstance.findByImageAndBaseSlice(image, baseSlice)
-            if (slice!=null && (slice?.id != id))
+            if (slice?.id != id)
                 throw new AlreadyExistException("SliceInstance (C:${baseSlice?.channel}, Z:${baseSlice?.zStack}, T:${baseSlice?.time}) already exists for ImageInstance ${image?.id}")
         }
     }
@@ -82,6 +82,8 @@ class SliceInstance extends CytomineDomain implements Serializable {
         returnArray['zStack'] = domain?.baseSlice?.zStack
         returnArray['time'] = domain?.baseSlice?.time
         returnArray['rank'] = domain?.baseSlice?.rank
+        returnArray['channelName'] = domain?.baseSlice?.channelName
+        returnArray['channelColor'] = domain?.baseSlice?.channelColor
 
         returnArray
     }

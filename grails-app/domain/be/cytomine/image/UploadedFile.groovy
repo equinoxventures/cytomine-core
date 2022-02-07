@@ -59,9 +59,16 @@ class UploadedFile extends CytomineDomain implements Serializable {
         DEPLOYING (40),
         ERROR_DEPLOYMENT (41), // 8
 
+        UNPACKING (50),
+        ERROR_UNPACKING (51),
+
+        CHECKING_INTEGRITY (60),
+        ERROR_INTEGRITY (61),
+
         DEPLOYED (100),
         EXTRACTED (102),
-        CONVERTED (104)
+        CONVERTED (104),
+        UNPACKED (106)
 
         private final int code
 
@@ -148,6 +155,7 @@ class UploadedFile extends CytomineDomain implements Serializable {
         returnArray['contentType'] = uploaded?.contentType
         returnArray['size'] = uploaded?.size
         returnArray['path'] = uploaded?.path
+        returnArray['isArchive'] = uploaded?.isArchive()
 
         returnArray['status'] = uploaded?.status
         returnArray['statusText'] = uploaded?.statusText
@@ -186,9 +194,10 @@ class UploadedFile extends CytomineDomain implements Serializable {
     }
 
     def getPath() {
-        if (contentType == "virtual/stack")
+        if (isVirtual())
             return null;
-        return Paths.get(imageServer?.basePath, user.id as String, filename).toString()
+        //[PIMS] Image server base path is no more required.
+        return Paths.get(/*imageServer?.basePath, user.id as String,*/ filename).toString()
     }
 
     def beforeInsert() {
@@ -201,6 +210,18 @@ class UploadedFile extends CytomineDomain implements Serializable {
         super.beforeUpdate()
         lTree = parent ? parent.lTree+"." : ""
         lTree += id
+    }
+
+    static def archiveFormats() {
+        return ["ZIP", "TAR", "GZTAR", "BZTAR", "XZTAR"]
+    }
+
+    boolean isArchive() {
+        return archiveFormats().contains(contentType)
+    }
+
+    boolean isVirtual() {
+        return contentType == "virtual/stack"; //TODO
     }
 
     CytomineDomain container() {

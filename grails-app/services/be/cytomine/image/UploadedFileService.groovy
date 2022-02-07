@@ -28,7 +28,7 @@ import be.cytomine.security.SecUser
 import be.cytomine.security.User
 import be.cytomine.security.UserJob
 import be.cytomine.utils.ModelService
-import be.cytomine.utils.SQLUtils
+import be.cytomine.utils.StringUtils
 import be.cytomine.utils.Task
 import grails.converters.JSON
 import groovy.sql.Sql
@@ -88,7 +88,7 @@ class UploadedFileService extends ModelService {
 
         String sort = ""
         if (["content_type", "id", "created", "filename", "originalFilename", "size", "status"].contains(sortedProperty)) {
-            sort = "uf.${SQLUtils.toSnakeCase(sortedProperty)}"
+            sort = "uf.${StringUtils.toSnakeCase(sortedProperty)}"
         } else if(sortedProperty == "globalSize") {
             sort = "COALESCE(SUM(DISTINCT tree.size),0)+uf.size"
         } else {
@@ -121,8 +121,8 @@ class UploadedFileService extends ModelService {
                     "LEFT JOIN acl_entry AS ae ON asi.id = ae.sid " +
                     "LEFT JOIN acl_object_identity AS aoi ON ae.acl_object_identity = aoi.id " +
                     "WHERE aoi.object_id_identity = uf.storage_id AND asi.sid = :username) " +
-                "AND (uf.parent_id IS NULL OR parent.content_type similar to '%zip%') " +
-                "AND uf.content_type NOT similar to '%zip%' " +
+                "AND (uf.parent_id IS NULL OR parent.content_type IN ('" + UploadedFile.archiveFormats().join("','") + "')) " +
+                "AND uf.content_type NOT IN ('" + UploadedFile.archiveFormats().join("','") + "') " +
                 "AND uf.deleted IS NULL " +
                 "AND " +
                 (search==null || search.isEmpty() ? "true" : search) +
@@ -138,7 +138,8 @@ class UploadedFileService extends ModelService {
         }
         mapParams.put("username", user.username)
         sql.eachRow(request, mapParams) { resultSet ->
-            def row = SQLUtils.keysToCamelCase(resultSet.toRowResult())
+            def row = StringUtils.keysToCamelCase(resultSet.toRowResult())
+            row.isArchive = UploadedFile.archiveFormats().contains(row.contentType)
             row.thumbURL = (row.image) ? UrlApi.getAbstractImageThumbUrl(row.image as Long) : null
             data << row
         }
@@ -173,15 +174,16 @@ class UploadedFileService extends ModelService {
         def data = []
         def sql = new Sql(dataSource)
         sql.eachRow(request, [username: user.username]) { resultSet ->
-            def row = SQLUtils.keysToCamelCase(resultSet.toRowResult())
+            def row = StringUtils.keysToCamelCase(resultSet.toRowResult())
             row.lTree = row.lTree.value
             row.image = row.image.array.find { it != null }
             row.slices = row.slices.array.findAll { it != null } // A same UF can be linked to several slices (virtual stacks)
             row.companionFile = row.companionFile.array.find { it != null }
+            row.isArchive = UploadedFile.archiveFormats().contains(row.contentType)
             row.thumbURL =  null
             if(row.image) {
                 row.thumbURL = UrlApi.getAbstractImageThumbUrl(row.image as Long)
-                row.macroURL = UrlApi.getAssociatedImage(row.image as Long, "macro", row.contentType as String, 256)
+                row.macroURL = UrlApi.getAssociatedImage(row.image as Long, "abstractimage", "macro", row.contentType as String, 256)
             } else if (row.slices.size() > 0) {
                 row.thumbURL = UrlApi.getAbstractSliceThumbUrl(row.slices[0] as Long)
             }

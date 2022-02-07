@@ -44,6 +44,10 @@ class AbstractSlice extends CytomineDomain implements Serializable {
     @RestApiObjectField(description = "The timepoint this plane is for. No unit. This is numbered from 0.")
     Integer time
 
+    String channelName
+
+    String channelColor
+
     @RestApiObjectFields(params = [
             @RestApiObjectField(apiFieldName = "rank", description = "The rank of the slice computed as ['channel' + 'image.channels' * ('zStack' + 'image.depth' * 'time')]", allowedType = "int", useForCreation = false),
             @RestApiObjectField(apiFieldName = "path", description = "The internal path of the file", allowedType = "string", useForCreation = false),
@@ -62,12 +66,14 @@ class AbstractSlice extends CytomineDomain implements Serializable {
     }
 
     static constraints = {
+        channelName nullable: true, blank: true
+        channelColor nullable: true, blank: true
     }
 
     void checkAlreadyExist() {
         withNewSession {
             AbstractSlice slice = AbstractSlice.findByImageAndChannelAndZStackAndTime(image, channel, zStack, time)
-            if (slice != null && (slice?.id != id))
+            if (slice?.id != id)
                 throw new AlreadyExistException("AbstractSlice (C:${channel}, Z:${zStack}, T:${time}) already exists for AbstractImage ${image?.id}")
         }
     }
@@ -85,6 +91,8 @@ class AbstractSlice extends CytomineDomain implements Serializable {
         domain.channel = JSONUtils.getJSONAttrInteger(json, "channel", 0)
         domain.zStack = JSONUtils.getJSONAttrInteger(json, "zStack", 0)
         domain.time = JSONUtils.getJSONAttrInteger(json, "time", 0)
+        domain.channelName = JSONUtils.getJSONAttrStr(json, "channelName", false)
+        domain.channelColor = JSONUtils.getJSONAttrStr(json, "channelColor", false)
 
         domain
     }
@@ -92,6 +100,7 @@ class AbstractSlice extends CytomineDomain implements Serializable {
     static def getDataFromDomain(def domain) {
         def returnArray = CytomineDomain.getDataFromDomain(domain)
         returnArray['uploadedFile'] = domain?.uploadedFile?.id
+        returnArray['imageServerUrl'] = domain?.imageServerUrl
         returnArray['path'] = domain?.path
         returnArray['image'] = domain?.image?.id
         returnArray['mime'] = domain?.mime?.mimeType
@@ -99,6 +108,8 @@ class AbstractSlice extends CytomineDomain implements Serializable {
         returnArray['channel'] = domain?.channel
         returnArray['zStack'] = domain?.zStack
         returnArray['time'] = domain?.time
+        returnArray['channelName'] = domain?.channelName
+        returnArray['channelColor'] = domain?.channelColor
 
         returnArray['rank'] = domain?.rank
 

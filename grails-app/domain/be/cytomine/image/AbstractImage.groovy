@@ -57,7 +57,11 @@ class AbstractImage extends CytomineDomain implements Serializable {
     Integer duration
 
     @RestApiObjectField(description = "The N-dimensional image channels (C)", mandatory = false, defaultValue = "1")
-    Integer channels
+    Integer channels // [PIMS] Intrinsic number of channels (RGB image = 1 intrinsic channel)
+    // TODO: in a new API, should be renamed to "intrinsicChannels"
+
+    Integer extrinsicChannels // [PIMS] True number of (color) channels (RGB image = 3 extrinsic channels)
+    // TODO: in a new API, should be renamed to "channels"
 
     @RestApiObjectField(description = "Physical size of a pixel along X axis", mandatory = false)
     Double physicalSizeX
@@ -78,6 +82,7 @@ class AbstractImage extends CytomineDomain implements Serializable {
     // TODO: should be named bit per color (bpc) <> bit per pixel (bpp) = bit depth
     Integer bitDepth
 
+    // TODO: Remove, no more filled by [PIMS]
     @RestApiObjectField(description = "The image colorspace")
     String colorspace
 
@@ -128,6 +133,7 @@ class AbstractImage extends CytomineDomain implements Serializable {
         bitDepth(nullable: true, min: 1)
         colorspace(nullable: true)
         user(nullable: true)
+        extrinsicChannels(nullable: true)
     }
 
     /**
@@ -152,6 +158,7 @@ class AbstractImage extends CytomineDomain implements Serializable {
         domain.depth = JSONUtils.getJSONAttrInteger(json, "depth", 1)
         domain.duration = JSONUtils.getJSONAttrInteger(json, "duration", 1)
         domain.channels = JSONUtils.getJSONAttrInteger(json, "channels", 1)
+        domain.extrinsicChannels = JSONUtils.getJSONAttrInteger(json, "extrinsicChannels", 1)
         domain.physicalSizeX = JSONUtils.getJSONAttrDouble(json, "physicalSizeX", null)
         domain.physicalSizeY = JSONUtils.getJSONAttrDouble(json, "physicalSizeY", null)
         domain.physicalSizeZ = JSONUtils.getJSONAttrDouble(json, "physicalSizeZ", null)
@@ -170,7 +177,7 @@ class AbstractImage extends CytomineDomain implements Serializable {
      * @param domain Domain source for json value
      * @return Map with fields (keys) and their values
      */
-    static def getDataFromDomain(def image) {
+    static def getDataFromDomain(AbstractImage image) {
         def returnArray = CytomineDomain.getDataFromDomain(image)
         returnArray['filename'] = image?.filename
         returnArray['originalFilename'] = image?.originalFilename
@@ -185,6 +192,7 @@ class AbstractImage extends CytomineDomain implements Serializable {
         returnArray['duration'] = image?.duration
         returnArray['channels'] = image?.channels
         returnArray['dimensions'] = image?.dimensions
+        returnArray['extrinsicChannels'] = image?.extrinsicChannels
 
         returnArray['physicalSizeX'] = image?.physicalSizeX
         returnArray['physicalSizeY'] = image?.physicalSizeY
@@ -198,7 +206,7 @@ class AbstractImage extends CytomineDomain implements Serializable {
         returnArray['colorspace'] = image?.colorspace
         returnArray['thumb'] = UrlApi.getAbstractImageThumbUrlWithMaxSize(image ? (long)image?.id : null, 512)
         returnArray['preview'] = UrlApi.getAbstractImageThumbUrlWithMaxSize(image ? (long)image?.id : null, 1024)
-        returnArray['macroURL'] = UrlApi.getAssociatedImage(image ? (long)image?.id : null, "macro", image?.uploadedFile?.contentType, 512)
+        returnArray['macroURL'] = UrlApi.getAssociatedImage(image, "macro", image?.uploadedFile?.contentType, 256)
         returnArray
     }
 
@@ -217,11 +225,10 @@ class AbstractImage extends CytomineDomain implements Serializable {
     }
 
     def getReferenceSliceCoordinate() {
-        def coordinates = getSliceCoordinates()
         return [
-                channel: coordinates.channels[(int) Math.floor(coordinates.channels.size() / 2)],
-                zStack: coordinates.zStacks[(int) Math.floor(coordinates.zStacks.size() / 2)],
-                time: coordinates.times[(int) Math.floor(coordinates.times.size() / 2)],
+                channel: (int) Math.floor(this.channels / 2),
+                zStack: (int) Math.floor(this.depth / 2),
+                time: (int) Math.floor(this.duration / 2),
         ]
     }
 

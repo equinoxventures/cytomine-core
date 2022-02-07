@@ -188,7 +188,7 @@ class ImageInstance extends CytomineDomain implements Serializable {
      * @param domain Domain source for json value
      * @return Map with fields (keys) and their values
      */
-    static def getDataFromDomain(def image) {
+    static def getDataFromDomain(ImageInstance image) {
 
         def returnArray = CytomineDomain.getDataFromDomain(image)
         returnArray['baseImage'] = image?.baseImage?.id
@@ -208,6 +208,7 @@ class ImageInstance extends CytomineDomain implements Serializable {
         returnArray['depth'] = image?.baseImage?.depth // /!!\ Breaking API : image?.baseImage?.getZoomLevels()?.max
         returnArray['duration'] = image?.baseImage?.duration
         returnArray['channels'] = image?.baseImage?.channels
+        returnArray['extrinsicChannels'] = image?.baseImage?.extrinsicChannels
 
         returnArray['physicalSizeX'] = image?.physicalSizeX
         returnArray['physicalSizeY'] = image?.physicalSizeY
@@ -231,7 +232,7 @@ class ImageInstance extends CytomineDomain implements Serializable {
 
         returnArray['thumb'] = UrlApi.getImageInstanceThumbUrlWithMaxSize(image?.id, 512)
         returnArray['preview'] = UrlApi.getImageInstanceThumbUrlWithMaxSize(image?.id, 1024)
-        returnArray['macroURL'] = UrlApi.getAssociatedImageInstance(image?.id, "macro", image?.baseImage?.uploadedFile?.contentType, 512)
+        returnArray['macroURL'] = UrlApi.getAssociatedImage(image, "macro", image?.baseImage?.uploadedFile?.contentType, 256)
         return returnArray
     }
 
