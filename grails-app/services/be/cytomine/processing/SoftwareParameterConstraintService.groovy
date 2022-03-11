@@ -1,7 +1,7 @@
 package be.cytomine.processing
 
 /*
- * Copyright (c) 2009-2018. Authors: see NOTICE file.
+ * Copyright (c) 2009-2022. Authors: see NOTICE file.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -106,7 +106,7 @@ class SoftwareParameterConstraintService extends ModelService {
                 .replaceAll("\\[separator]", separator)
                 .replaceAll("\\[parameterValue]", parameterValue as String)
 
-        log.info("Expression ${expression}")
+        log.debug("Expression ${expression}")
 
         return Eval.me(expression)
     }

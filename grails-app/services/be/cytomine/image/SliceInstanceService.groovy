@@ -96,7 +96,7 @@ class SliceInstanceService extends ModelService {
         securityACLService.checkFullOrRestrictedForOwner(slice.container(), slice.image.user)
         SecUser currentUser = cytomineService.getCurrentUser()
         def jsonNewData = JSON.parse(slice.encodeAsJSON())
-        println jsonNewData
+        log.debug jsonNewData
         jsonNewData.deleted = new Date().time
         Command c = new EditCommand(user: currentUser)
         c.delete = true

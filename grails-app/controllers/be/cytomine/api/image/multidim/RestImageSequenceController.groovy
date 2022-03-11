@@ -134,6 +134,9 @@ class RestImageSequenceController extends RestController {
     }
 
     @RestApiMethod(description="[REMOVED] Update an image sequence (id must be defined in post data JSON)")
+    @RestApiParams(params=[
+            @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH, description = "The image sequence id")
+    ])
     def update () {
         throw new ForbiddenException("The ImageGroup features has been removed in this version")
         //update(imageSequenceService, request.JSON)
