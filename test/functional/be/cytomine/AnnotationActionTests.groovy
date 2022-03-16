@@ -34,9 +34,8 @@ class AnnotationActionTests {
     }
 
     void testListByImage() {
-        def slice = SliceInstanceAPI.buildBasicSlice(Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
-        def annotation = BasicInstanceBuilder.getUserAnnotationNotExist(slice, true)
-        def image = slice.image
+        def image = BasicInstanceBuilder.getImageInstance()
+        def annotation = BasicInstanceBuilder.getUserAnnotationNotExist(image.referenceSlice, true)
         def json = JSON.parse("{image:${image.id}, annotationIdent:${annotation.id}, action:Test}")
 
         def result = AnnotationActionAPI.create(json.toString(),Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
@@ -58,9 +57,9 @@ class AnnotationActionTests {
     }
 
     void testListBySlice() {
-        def slice = SliceInstanceAPI.buildBasicSlice(Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
+        def image = BasicInstanceBuilder.getImageInstance()
+        def slice = image.referenceSlice
         def annotation = BasicInstanceBuilder.getUserAnnotationNotExist(slice, true)
-        def image = slice.image
         def json = JSON.parse("{slice:${slice.id}, annotationIdent:${annotation.id}, action:Test}")
 
         def result = AnnotationActionAPI.create(json.toString(),Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
