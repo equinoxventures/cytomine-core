@@ -33,14 +33,12 @@ import org.restapidoc.pojo.RestApiParamType
 @RestApi(name = "Image | abstract image services", description = "Methods for managing an image. See image instance service to manage an instance of image in a project.")
 class RestAbstractImageController extends RestController {
 
+    def imagePropertiesService
     def abstractImageService
     def cytomineService
     def projectService
     def imageServerService
     def uploadedFileService
-    def imageSequenceService
-    def securityACLService
-    def imagePropertiesService
 
     @RestApiMethod(description="Get all image available for the current user", listing = true)
     @RestApiParams(params=[
@@ -103,7 +101,6 @@ class RestAbstractImageController extends RestController {
         @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH,description = "The image id")
     ])
     def update() {
-        log.info("update image (controller)")
         update(abstractImageService, request.JSON)
     }
 
@@ -318,8 +315,12 @@ class RestAbstractImageController extends RestController {
     @RestApiResponseObject(objectIdentifier = "empty")
     def clearProperties () {
         AbstractImage abstractImage = abstractImageService.read(params.long('id'))
-        imagePropertiesService.clear(abstractImage)
-        responseSuccess([:])
+        if (abstractImage) {
+            imagePropertiesService.clear(abstractImage)
+            responseSuccess([:])
+        } else {
+            responseNotFound("Image", params.id)
+        }
     }
 
     @RestApiMethod(description="Get all image properties (metadata) from underlying file")
@@ -329,19 +330,28 @@ class RestAbstractImageController extends RestController {
     @RestApiResponseObject(objectIdentifier = "empty")
     def populateProperties () {
         AbstractImage abstractImage = abstractImageService.read(params.long('id'))
-        imagePropertiesService.populate(abstractImage)
-        responseSuccess([:])
+        if (abstractImage) {
+            imagePropertiesService.populate(abstractImage)
+            responseSuccess([:])
+        } else {
+            responseNotFound("Image", params.id)
+        }
     }
 
     @RestApiMethod(description="Fill main image field from image properties")
     @RestApiParams(params=[
-            @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH, description = "The image id")
+            @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH, description = "The image id"),
+            @RestApiParam(name="deep", type="boolean", paramType = RestApiParamType.PATH, description = "True to fill property slice fields"),
     ])
     @RestApiResponseObject(objectIdentifier = "empty")
     def extractProperties () {
         AbstractImage abstractImage = abstractImageService.read(params.long('id'))
-        imagePropertiesService.extractUseful(abstractImage)
-        responseSuccess([:])
+        if (abstractImage) {
+            imagePropertiesService.extractUseful(abstractImage, params.boolean('deep', false))
+            responseSuccess([:])
+        } else {
+            responseNotFound("Image", params.id)
+        }
     }
 
     @RestApiMethod(description="Regenerate main image field from image properties")
