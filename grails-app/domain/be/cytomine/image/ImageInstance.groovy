@@ -100,7 +100,7 @@ class ImageInstance extends CytomineDomain implements Serializable {
             @RestApiObjectField(apiFieldName = "duration", description = "The N-dimensional image duration, in frames (T)", allowedType = "int", useForCreation = false, mandatory = false, defaultValue = "1"),
             @RestApiObjectField(apiFieldName = "channels", description = "The N-dimensional image channels (C)", allowedType = "int", useForCreation = false, mandatory = false, defaultValue = "1"),
             @RestApiObjectField(apiFieldName = "bitPerSample", description = "The number of bits per sample (color)", allowedType = "int", useForCreation = false, mandatory = false),
-            @RestApiObjectField(apiFieldName = "samplePerPixel", description = "The number of samples (colors) per pixel", allowedType = "int", useForCreation = false, mandatory = false),
+            @RestApiObjectField(apiFieldName = "samplePerPixel", description = "The number of samples per pixel", allowedType = "int", useForCreation = false, mandatory = false),
             @RestApiObjectField(apiFieldName = "colorspace", description = "The image colorspace", allowedType = "string", useForCreation = false, mandatory = false),
             @RestApiObjectField(apiFieldName = "preview", description = "URL to get image preview", allowedType = "string", useForCreation = false),
     ])
@@ -208,7 +208,7 @@ class ImageInstance extends CytomineDomain implements Serializable {
         returnArray['depth'] = image?.baseImage?.depth // /!!\ Breaking API : image?.baseImage?.getZoomLevels()?.max
         returnArray['duration'] = image?.baseImage?.duration
         returnArray['channels'] = image?.baseImage?.channels
-        returnArray['extrinsicChannels'] = image?.baseImage?.extrinsicChannels
+        returnArray['apparentChannels'] = image?.baseImage?.apparentChannels
 
         returnArray['physicalSizeX'] = image?.physicalSizeX
         returnArray['physicalSizeY'] = image?.physicalSizeY
@@ -217,7 +217,8 @@ class ImageInstance extends CytomineDomain implements Serializable {
 
         returnArray['zoom'] = image?.baseImage?.getZoomLevels()
         returnArray['magnification'] = image?.magnification
-        returnArray['bitDepth'] = image?.baseImage?.bitDepth
+        returnArray['bitPerSample'] = image?.baseImage?.bitPerSample
+        returnArray['samplePerPixel'] = image?.baseImage?.samplePerPixel
         returnArray['colorspace'] = image?.baseImage?.colorspace
 
         returnArray['reviewStart'] =  image?.reviewStart?.time?.toString()

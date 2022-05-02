@@ -57,11 +57,14 @@ class AbstractImage extends CytomineDomain implements Serializable {
     Integer duration
 
     @RestApiObjectField(description = "The N-dimensional image channels (C)", mandatory = false, defaultValue = "1")
-    Integer channels // [PIMS] Intrinsic number of channels (RGB image = 1 intrinsic channel)
-    // TODO: in a new API, should be renamed to "intrinsicChannels"
+    Integer channels // [PIMS] Concrete number of channels (RGB image = 1 concrete channel / 3 samples)
+    // TODO: in a new API, should be renamed
 
-    Integer extrinsicChannels // [PIMS] True number of (color) channels (RGB image = 3 extrinsic channels)
-    // TODO: in a new API, should be renamed to "channels"
+    @RestApiObjectField(description = "The number of samples per pixel", defaultValue = "8")
+    Integer samplePerPixel = 8
+
+    @RestApiObjectField(description = "The number of bits used to encode a sample")
+    Integer bitPerSample
 
     @RestApiObjectField(description = "Physical size of a pixel along X axis", mandatory = false)
     Double physicalSizeX
@@ -77,10 +80,6 @@ class AbstractImage extends CytomineDomain implements Serializable {
 
     @RestApiObjectField(description = "The image max zoom")
     Integer magnification
-
-    @RestApiObjectField(description = "The image bit depth (bits per channel)")
-    // TODO: should be named bit per color (bpc) <> bit per pixel (bpp) = bit depth
-    Integer bitDepth
 
     // TODO: Remove, no more filled by [PIMS]
     @RestApiObjectField(description = "The image colorspace")
@@ -116,7 +115,7 @@ class AbstractImage extends CytomineDomain implements Serializable {
     }
 
     static constraints = {
-        uploadedFile(nullable: true) // An abstract without uploaded file is a virtual hyper stack.
+        uploadedFile(nullable: true) // shouldn't be nullable
         originalFilename(nullable: true, blank: false, unique: false)
         scanner(nullable: true)
         sample(nullable: true)
@@ -130,10 +129,10 @@ class AbstractImage extends CytomineDomain implements Serializable {
         physicalSizeZ(nullable: true)
         fps(nullable: true)
         magnification(nullable: true)
-        bitDepth(nullable: true, min: 1)
+        bitPerSample(nullable: true)
         colorspace(nullable: true)
         user(nullable: true)
-        extrinsicChannels(nullable: true)
+        samplePerPixel(nullable: true)
     }
 
     /**
@@ -158,7 +157,9 @@ class AbstractImage extends CytomineDomain implements Serializable {
         domain.depth = JSONUtils.getJSONAttrInteger(json, "depth", 1)
         domain.duration = JSONUtils.getJSONAttrInteger(json, "duration", 1)
         domain.channels = JSONUtils.getJSONAttrInteger(json, "channels", 1)
-        domain.extrinsicChannels = JSONUtils.getJSONAttrInteger(json, "extrinsicChannels", 1)
+        domain.samplePerPixel = JSONUtils.getJSONAttrInteger(json, 'samplePerPixel', 1)
+        domain.bitPerSample = JSONUtils.getJSONAttrInteger(json, 'bitPerSample', 8)
+
         domain.physicalSizeX = JSONUtils.getJSONAttrDouble(json, "physicalSizeX", null)
         domain.physicalSizeY = JSONUtils.getJSONAttrDouble(json, "physicalSizeY", null)
         domain.physicalSizeZ = JSONUtils.getJSONAttrDouble(json, "physicalSizeZ", null)
@@ -167,7 +168,7 @@ class AbstractImage extends CytomineDomain implements Serializable {
         domain.scanner = JSONUtils.getJSONAttrDomain(json,"scanner",new Instrument(),false)
         domain.sample = JSONUtils.getJSONAttrDomain(json,"sample",new Sample(),false)
         domain.magnification = JSONUtils.getJSONAttrInteger(json,'magnification',null)
-        domain.bitDepth = JSONUtils.getJSONAttrInteger(json, 'bitDepth', null)
+
         domain.colorspace = JSONUtils.getJSONAttrStr(json, 'colorspace', false)
         return domain;
     }
@@ -192,7 +193,7 @@ class AbstractImage extends CytomineDomain implements Serializable {
         returnArray['duration'] = image?.duration
         returnArray['channels'] = image?.channels
         returnArray['dimensions'] = image?.dimensions
-        returnArray['extrinsicChannels'] = image?.extrinsicChannels
+        returnArray['apparentChannels'] = image?.apparentChannels
 
         returnArray['physicalSizeX'] = image?.physicalSizeX
         returnArray['physicalSizeY'] = image?.physicalSizeY
@@ -202,12 +203,17 @@ class AbstractImage extends CytomineDomain implements Serializable {
         returnArray['zoom'] = image?.getZoomLevels()
 
         returnArray['magnification'] = image?.magnification
-        returnArray['bitDepth'] = image?.bitDepth
+        returnArray['bitPerSample'] = image?.bitPerSample
+        returnArray['samplePerPixel'] = image?.samplePerPixel
         returnArray['colorspace'] = image?.colorspace
         returnArray['thumb'] = UrlApi.getAbstractImageThumbUrlWithMaxSize(image ? (long)image?.id : null, 512)
         returnArray['preview'] = UrlApi.getAbstractImageThumbUrlWithMaxSize(image ? (long)image?.id : null, 1024)
         returnArray['macroURL'] = UrlApi.getAssociatedImage(image, "macro", image?.uploadedFile?.contentType, 256)
         returnArray
+    }
+
+    def getApparentChannels() {
+        return channels * samplePerPixel
     }
 
     def getPath() {
