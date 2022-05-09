@@ -41,17 +41,30 @@ class SliceInstanceUrlMappings {
         "/api/sliceinstance/$id/window-$x-$y-$w-$h.$format"(controller: "restSliceInstance"){
             action = [GET:"window", POST:"window"]
         }
-        "/api/sliceinstance/$id/window_url-$x-$y-$w-$h.$format"(controller: "restSliceInstance"){
-            action = [GET:"windowUrl", POST:"windowUrl"]
+//        "/api/sliceinstance/$id/window_url-$x-$y-$w-$h.$format"(controller: "restSliceInstance"){
+//            action = [GET:"windowUrl", POST:"windowUrl"]
+//        }
+//        "/api/sliceinstance/$id/camera.$format"(controller: "restSliceInstance"){
+//            action = [POST:"camera"]
+//        }
+//        "/api/sliceinstance/$id/camera-$x-$y-$w-$h.$format"(controller: "restSliceInstance"){
+//            action = [GET:"camera", POST:"camera"]
+//        }
+//        "/api/sliceinstance/$id/camera_url-$x-$y-$w-$h.$format"(controller: "restSliceInstance"){
+//            action = [GET:"cameraUrl", POST:"cameraUrl"]
+//        }
+
+        "/api/sliceinstance/$id/histogram.$format"(controller: "restSliceInstance"){
+            action = [GET:"histogram"]
         }
-        "/api/sliceinstance/$id/camera.$format"(controller: "restSliceInstance"){
-            action = [POST:"camera"]
+        "/api/sliceinstance/$id/histogram/bounds.$format"(controller: "restSliceInstance"){
+            action = [GET:"histogramBounds"]
         }
-        "/api/sliceinstance/$id/camera-$x-$y-$w-$h.$format"(controller: "restSliceInstance"){
-            action = [GET:"camera", POST:"camera"]
+        "/api/sliceinstance/$id/channelhistogram.$format"(controller: "restSliceInstance"){
+            action = [GET:"channelHistograms"]
         }
-        "/api/sliceinstance/$id/camera_url-$x-$y-$w-$h.$format"(controller: "restSliceInstance"){
-            action = [GET:"cameraUrl", POST:"cameraUrl"]
+        "/api/sliceinstance/$id/channelhistogram/bounds.$format"(controller: "restSliceInstance"){
+            action = [GET:"channelHistogramBounds"]
         }
     }
 }

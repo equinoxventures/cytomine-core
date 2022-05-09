@@ -71,38 +71,41 @@ class ImagePropertiesService implements Serializable {
             image.height = properties?.image?.height
             image.depth = properties?.image?.depth
             image.duration = properties?.image?.duration
-            image.channels = properties?.image?.n_intrinsic_channels
+            image.channels = properties?.image?.n_concrete_channels
+            image.samplePerPixel = properties?.image?.n_samples
+
             image.physicalSizeX = properties?.image?.physical_size_x
             image.physicalSizeY = properties?.image?.physical_size_y
             image.physicalSizeZ = properties?.image?.physical_size_z
             image.fps = properties?.image?.frame_rate
             image.magnification = properties?.instrument?.objective?.nominal_magnification
 
-            def pixelType = [
-                    "uint8": 8,
-                    "int8": 8,
-                    "uint16": 16,
-                    "int16": 16
-            ]
-            /*image.bitPerSample = pixelType.getOrDefault(properties?.image?.pixel_type, 8)
-            image.samplePerPixel = properties?.image?.n_channels / properties?.image?.n_intrinsic_channels
-
-
-            image.resolution = properties?.image?.physical_size_x // TODO: remove
-            image.tileSize = 256 // [PIMS] At this stage, we only support normalized-tiles.
-
-            image.extractedMetadata = new Date()*/
+            image.bitPerSample = properties?.image?.bits ?: 8
+//            image.tileSize = 256 // [PIMS] At this stage, we only support normalized-tiles.
+//
+//            image.extractedMetadata = new Date()
             image.save(flush: true, failOnError: true)
 
             if (deep) {
-                properties?.channels?.each { channel ->
+                for (int i = 0; i < image.apparentChannels; i += image.samplePerPixel) {
+                    def channel = properties?.channels[i]
+                    int index = Math.floorDiv(channel.index as Integer, image.samplePerPixel)
+                    String name = channel.suggested_name as String
+                    String color = channel.color as String
+                    if (image.samplePerPixel != 1) {
+                        color = null
+                        name = (0..<image.samplePerPixel).collect { s ->
+                            return properties?.channels[i+s].suggested_name as String
+                        }.unique().join('|')
+                    }
+
                     def  query = new DetachedCriteria(AbstractSlice).build {
                         eq 'image', image
-                        eq 'channel', channel.index as Integer
+                        eq 'channel', index
                     }
                     query.updateAll(
-                            channelName: channel.suggested_name as String,
-                            channelColor: channel.color as String
+                            channelName: name,
+                            channelColor: color
                     )
                 }
             }

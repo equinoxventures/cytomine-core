@@ -28,14 +28,9 @@ import be.cytomine.ontology.UserAnnotation
 import be.cytomine.project.Project
 import be.cytomine.security.SecUser
 import be.cytomine.sql.ReviewedAnnotationListing
-import be.cytomine.test.HttpClient
-import be.cytomine.meta.Description
 import be.cytomine.utils.GeometryUtils
 import com.vividsolutions.jts.geom.Geometry
-import com.vividsolutions.jts.geom.GeometryCollection
-import com.vividsolutions.jts.geom.GeometryFactory
 import com.vividsolutions.jts.io.WKTReader
-import com.vividsolutions.jts.io.WKTWriter
 import grails.converters.JSON
 import org.codehaus.groovy.grails.web.json.JSONObject
 import org.codehaus.groovy.grails.web.servlet.mvc.GrailsParameterMap
@@ -214,6 +209,50 @@ class RestImageInstanceController extends RestController {
 
     def dataSource
 
+    def histogram() {
+        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+        if (imageInstance) {
+            def histogram = imageServerService.imageHistogram(
+                    imageInstance, params.int("nBins", 256)
+            )
+            responseSuccess(histogram)
+        } else {
+            responseNotFound("Image", params.id)
+        }
+    }
+
+    def histogramBounds() {
+        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+        if (imageInstance) {
+            def histogramBounds = imageServerService.imageHistogramBounds(imageInstance)
+            responseSuccess(histogramBounds)
+        } else {
+            responseNotFound("Image", params.id)
+        }
+    }
+
+    def channelHistograms() {
+        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+        if (imageInstance) {
+            def histograms = imageServerService.channelHistograms(
+                    imageInstance, params.int("nBins", 256)
+            )
+            responseSuccess(histograms)
+        } else {
+            responseNotFound("Image", params.id)
+        }
+    }
+
+    def channelHistogramBounds() {
+        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+        if (imageInstance) {
+            def channelHistogramBounds = imageServerService.channelHistogramBounds(imageInstance)
+            responseSuccess(channelHistogramBounds)
+        } else {
+            responseNotFound("Image", params.id)
+        }
+    }
+
     @RestApiMethod(description="Get a small image (thumb) for a specific image", extensions=["png", "jpg"])
     @RestApiParams(params=[
             @RestApiParam(name="id", type="long", paramType=RestApiParamType.PATH, description="The image id"),
@@ -321,16 +360,16 @@ class RestImageInstanceController extends RestController {
 
     }
 
-    def windowUrl() {
-        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
-        if (imageInstance) {
-            String url = imageServerService.window(imageInstance.baseImage, params, true)
-            responseSuccess([url : url])
-        } else {
-            responseNotFound("Image", params.id)
-        }
-
-    }
+//    def windowUrl() {
+//        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+//        if (imageInstance) {
+//            String url = imageServerService.window(imageInstance.baseImage, params, true)
+//            responseSuccess([url : url])
+//        } else {
+//            responseNotFound("Image", params.id)
+//        }
+//
+//    }
 
     def window() {
         ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
@@ -340,7 +379,6 @@ class RestImageInstanceController extends RestController {
             if (annotationType != 'crop') {
                 params.geometries = getWKTGeometry(imageInstance, params)
             }
-
             String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
             responseImage(imageServerService.window(imageInstance, params, false, etag))
         } else {
@@ -348,26 +386,26 @@ class RestImageInstanceController extends RestController {
         }
     }
 
-    def cameraUrl() {
-        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
-        if (imageInstance) {
-            params.withExterior = false
-            String url = imageServerService.window(imageInstance.baseImage, params, true)
-            responseSuccess([url : url])
-        } else {
-            responseNotFound("Image", params.id)
-        }
-    }
-
-    def camera() {
-        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
-        if (imageInstance) {
-            params.withExterior = false
-            responseImage(imageServerService.window(imageInstance.baseImage, params, false))
-        } else {
-            responseNotFound("Image", params.id)
-        }
-    }
+//    def cameraUrl() {
+//        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+//        if (imageInstance) {
+//            params.withExterior = false
+//            String url = imageServerService.window(imageInstance.baseImage, params, true)
+//            responseSuccess([url : url])
+//        } else {
+//            responseNotFound("Image", params.id)
+//        }
+//    }
+//
+//    def camera() {
+//        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+//        if (imageInstance) {
+//            params.withExterior = false
+//            responseImage(imageServerService.window(imageInstance.baseImage, params, false))
+//        } else {
+//            responseNotFound("Image", params.id)
+//        }
+//    }
 
     //todo : move into a service
     public List<Geometry> getWKTGeometry(ImageInstance imageInstance, GrailsParameterMap params) {

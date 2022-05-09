@@ -194,13 +194,13 @@ class ImageServerTests {
 
 
 
-
+/*
     void testGetWindowUrl() {
         ImageInstance imageInstance = BasicInstanceBuilder.initImage()
         def result = ImageServerAPI.windowUrl(imageInstance.id,20000,30000,300,300,Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
         assert result.code == 200
     }
-/*
+
     void testGetWindow() {
         ImageInstance imageInstance = BasicInstanceBuilder.initImage()
         def result = ImageServerAPI.window(imageInstance.id,20000,30000,300,300,Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)

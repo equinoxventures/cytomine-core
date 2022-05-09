@@ -82,7 +82,6 @@ class ImageServerService extends ModelService {
         makeGetUrl(uri, uf.imageServer.url, [:])
     }
 
-    //TODO
     def downloadUri(CompanionFile file) {
         downloadUri(file.uploadedFile)
     }
@@ -100,6 +99,92 @@ class ImageServerService extends ModelService {
         def uri = "/image/${path}/metadata"
         def response = makeRequest(uri, server, [:], "json", "GET")
         return response?.items
+    }
+
+    def imageHistogram(ImageInstance image, int nBins = 256) {
+        return imageHistogram(image.baseImage, nBins)
+    }
+
+    def imageHistogram(AbstractImage image, int nBins = 256) {
+        def (server, path) = imsParametersFromAbstractImage(image)
+        def uri = "/image/${path}/histogram/per-image"
+        def params = [n_bins: nBins]
+        def response = makeRequest(uri, server, params, "json", "GET")
+        return StringUtils.keysToCamelCase(response)
+    }
+
+    def imageHistogramBounds(ImageInstance image) {
+        return imageHistogramBounds(image.baseImage)
+    }
+
+    def imageHistogramBounds(AbstractImage image) {
+        def (server, path) = imsParametersFromAbstractImage(image)
+        def uri = "/image/${path}/histogram/per-image/bounds"
+        def response = makeRequest(uri, server, [:], "json", "GET")
+        return StringUtils.keysToCamelCase(response)
+    }
+
+    def channelHistograms(ImageInstance image, int nBins = 256) {
+        return channelHistograms(image.baseImage, nBins)
+    }
+
+    def channelHistograms(AbstractImage image, int nBins = 256) {
+        def (server, path) = imsParametersFromAbstractImage(image)
+        def uri = "/image/${path}/histogram/per-channels"
+        def params = [n_bins: nBins]
+        def response = makeRequest(uri, server, params, "json", "GET")
+
+        return response?.items?.collect { it ->
+            renameChannelHistogramKeys(StringUtils.keysToCamelCase(it))
+        }
+    }
+
+    def channelHistogramBounds(ImageInstance image) {
+        return channelHistogramBounds(image.baseImage)
+    }
+
+    def channelHistogramBounds(AbstractImage image) {
+        def (server, path) = imsParametersFromAbstractImage(image)
+        def uri = "/image/${path}/histogram/per-channels/bounds"
+        def response = makeRequest(uri, server, [:], "json", "GET")
+
+        return response?.items?.collect { it ->
+            renameChannelHistogramKeys(StringUtils.keysToCamelCase(it))
+        }
+    }
+
+    def planeHistograms(SliceInstance slice, int nBins = 256, boolean allChannels = true) {
+        return planeHistograms(slice.baseSlice, nBins, allChannels)
+    }
+
+    def planeHistograms(AbstractSlice slice, int nBins = 256, boolean allChannels = true) {
+        def (server, path) = imsParametersFromAbstractImage(slice.image)
+        def uri = "/image/${path}/histogram/per-plane/z/${slice.zStack}/t/${slice.time}"
+        def params = [n_bins: nBins]
+        if (!allChannels) {
+            params << [channels: slice.channel]
+        }
+        def response = makeRequest(uri, server, params, "json", "GET")
+        return response?.items?.collect { it ->
+            renameChannelHistogramKeys(StringUtils.keysToCamelCase(it))
+        }
+    }
+
+    def planeHistogramBounds(SliceInstance slice, boolean allChannels = true) {
+        return planeHistogramBounds(slice.baseSlice, allChannels)
+    }
+
+    def planeHistogramBounds(AbstractSlice slice, boolean allChannels = true) {
+        def (server, path) = imsParametersFromAbstractImage(slice.image)
+        def uri = "/image/${path}/histogram/per-plane/z/${slice.zStack}/t/${slice.time}/bounds"
+        def params = [:]
+        if (!allChannels) {
+            params << [channels: slice.channel]
+        }
+        def response = makeRequest(uri, server, params, "json", "GET")
+        return response?.items?.collect { it ->
+            renameChannelHistogramKeys(StringUtils.keysToCamelCase(it))
+        }
     }
 
     def associated(ImageInstance image) {
@@ -640,5 +725,14 @@ class ImageServerService extends ModelService {
             return colormap.substring(1)
         }
         return '!' + colormap
+    }
+
+    private static Map renameChannelHistogramKeys(Map hist) {
+        def channel = hist['concreteChannel']
+        def apparentChannel = hist['channel']
+        hist['channel'] = channel
+        hist['apparentChannel'] = apparentChannel
+        hist.remove('concreteChannel')
+        return hist
     }
 }
