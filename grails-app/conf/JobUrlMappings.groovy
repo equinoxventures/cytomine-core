@@ -44,10 +44,6 @@ class JobUrlMappings {
             action = [GET: "getLog"]
         }
 
-        "/api/job/$id/log.$format" (controller: "restJob") {
-            action = [GET: "getLog"]
-        }
-
         "/api/job/$id/favorite.$format" (controller: "restJob") {
             action = [POST: "setFavorite"]
         }

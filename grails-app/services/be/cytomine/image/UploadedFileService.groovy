@@ -132,7 +132,7 @@ class UploadedFileService extends ModelService {
         def data = []
         def sql = new Sql(dataSource)
         def mapParams = sqlSearchConditions.sqlParameters
-        println request
+        log.debug request
         if (mapParams instanceof List && mapParams.isEmpty()) {
             mapParams = [:] // if sqlSearchConditions.sqlParameters is empty, it return a list, otherwise a map (a bit tricky...).
         }

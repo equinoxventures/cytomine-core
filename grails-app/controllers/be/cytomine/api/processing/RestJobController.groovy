@@ -258,6 +258,7 @@ class RestJobController extends RestController {
         }
     }
 
+
     /**
      * Delete the full data set build by the job
      * This method will delete: annotation prediction, uploaded files,...

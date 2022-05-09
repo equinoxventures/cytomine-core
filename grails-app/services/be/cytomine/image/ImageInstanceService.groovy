@@ -34,7 +34,6 @@ import be.cytomine.social.AnnotationAction
 import be.cytomine.social.LastUserPosition
 import be.cytomine.social.PersistentImageConsultation
 import be.cytomine.social.PersistentUserPosition
-import be.cytomine.security.UserJob
 import be.cytomine.meta.Description
 import be.cytomine.utils.JSONUtils
 import be.cytomine.utils.ModelService
@@ -218,7 +217,6 @@ class ImageInstanceService extends ModelService {
             map['updated'] = map['updated']?.getTime()
             map['reviewStart'] = map['reviewStart']?.getTime()
             map['reviewStop'] = map['reviewStop']?.getTime()
-            map['reviewUser'] = map['reviewUserId']
             map['baseImage'] = map['baseImageId']
             map['project'] = map['projectId']
             map['reviewUser'] = map['reviewUserId']
