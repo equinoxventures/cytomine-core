@@ -147,6 +147,7 @@ class StatsService extends ModelService {
         if(reverseOrder) {
             return data.reverse()
         }
+        sql.close()
 
         return data
     }
@@ -217,6 +218,7 @@ class StatsService extends ModelService {
                 "GROUP BY at.term_id ") {
             result.get(it[0]).value = it[1]
         }
+        sql.close()
 
         return result.values()
     }
@@ -284,6 +286,7 @@ class StatsService extends ModelService {
         stats.each {
             list << ["id": ids.get(it.key), "key": it.key, "value": it.value, "color": color.get(it.key)]
         }
+        sql.close()
         return list
     }
 
