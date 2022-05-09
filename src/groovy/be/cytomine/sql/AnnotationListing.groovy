@@ -200,17 +200,11 @@ abstract class AnnotationListing {
 
         buildExtraRequest()
 
-        def columns = buildColumnToPrint()
-        def sqlColumns = []
-        def postComputedColumns = []
-
-        columns.each {
-            if (!it.value.startsWith("#")) {
-                sqlColumns << it
-            } else {
-                postComputedColumns << it
-            }
+        if (!columnToPrint) {
+            columnToPrint = availableColumnDefault.clone()
         }
+        columnToPrint.add('basic') //mandatory to have id
+        columnToPrint = columnToPrint.unique()
 
         String whereRequest =
                 getProjectConst() +
@@ -255,6 +249,18 @@ abstract class AnnotationListing {
                         getAfterThan() +
                         getNotDeleted() +
                         createOrderBy()
+
+        def columns = buildColumnToPrint()
+        def sqlColumns = []
+        def postComputedColumns = []
+
+        columns.each {
+            if (!it.value.startsWith("#")) {
+                sqlColumns << it
+            } else {
+                postComputedColumns << it
+            }
+        }
 
         if (term || terms || track || tracks) {
             def request = "SELECT DISTINCT a.*, "
