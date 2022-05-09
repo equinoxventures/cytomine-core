@@ -394,6 +394,7 @@ class ProjectService extends ModelService {
 
 
     def listByCreator(User user) {
+        securityACLService.checkIsSameUser(user,cytomineService.currentUser)
         def data = []
         def sql = new Sql(dataSource)
          sql.eachRow("select * from creator_project where user_id = ?",[user.id]) {
@@ -404,6 +405,7 @@ class ProjectService extends ModelService {
     }
 
     def listByAdmin(User user) {
+        securityACLService.checkIsSameUser(user,cytomineService.currentUser)
         def data = []
         def sql = new Sql(dataSource)
         sql.eachRow("select * from admin_project where user_id = ?",[user.id]) {
@@ -414,6 +416,7 @@ class ProjectService extends ModelService {
     }
 
     def listByUser(User user) {
+        securityACLService.checkIsSameUser(user,cytomineService.currentUser)
         def data = []
         def sql = new Sql(dataSource)
         sql.eachRow("select * from user_project where user_id = ?",[user.id]) {

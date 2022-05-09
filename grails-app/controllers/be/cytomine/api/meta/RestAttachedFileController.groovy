@@ -139,33 +139,32 @@ class RestAttachedFileController extends RestController {
         }
     }
 
-    @RestApiMethod(description="Upload a file for a domain. Decode params filled by RTEditor")
-    @RestApiParams(params=[
-    @RestApiParam(name="domainIdent", type="long", paramType = RestApiParamType.PATH, description = "The domain id"),
-    @RestApiParam(name="domainClassName", type="string", paramType = RestApiParamType.PATH, description = "The domain class")
-    ])
-    def uploadFromRTEditor() {
-        log.info "Upload attached file"
-        Long domainIdent = params.long("domainIdent")
-        String domainClassName = params.get("domainClassName")
-        String key = params.get("key")
-        def upload = params.image
-        String filename = upload.getOriginalFilename()
-        log.info "Upload $filename for domain $domainClassName $domainIdent"
-
-        CytomineDomain recipientDomain = Class.forName(domainClassName, false, Thread.currentThread().contextClassLoader).read(domainIdent)
-        if(recipientDomain instanceof AbstractImage) {
-            securityACLService.checkAtLeastOne(domainIdent, domainClassName, "containers", READ)
-        } else if(recipientDomain instanceof Project || !recipientDomain.container() instanceof Project) {
-            securityACLService.check(domainIdent,domainClassName,"container",WRITE)
-        } else {
-            securityACLService.checkFullOrRestrictedForOwner(domainIdent,domainClassName)
-        }
-        def result = attachedFileService.add(filename,upload.getBytes(),key,domainIdent,domainClassName)
-
-        responseSuccess(result)
-
-    }
+//    @RestApiMethod(description="Upload a file for a domain. Decode params filled by RTEditor")
+//    @RestApiParams(params=[
+//    @RestApiParam(name="domainIdent", type="long", paramType = RestApiParamType.PATH, description = "The domain id"),
+//    @RestApiParam(name="domainClassName", type="string", paramType = RestApiParamType.PATH, description = "The domain class")
+//    ])
+//    def uploadFromRTEditor() {
+//        log.info "Upload attached file"
+//        Long domainIdent = params.long("domainIdent")
+//        String domainClassName = params.get("domainClassName")
+//        def upload = params.image
+//        String filename = upload.getOriginalFilename()
+//        log.info "Upload $filename for domain $domainClassName $domainIdent"
+//
+//        CytomineDomain recipientDomain = Class.forName(domainClassName, false, Thread.currentThread().contextClassLoader).read(domainIdent)
+//        if(recipientDomain instanceof AbstractImage) {
+//            securityACLService.checkAtLeastOne(domainIdent, domainClassName, "containers", READ)
+//        } else if(recipientDomain instanceof Project || !recipientDomain.container() instanceof Project) {
+//            securityACLService.check(domainIdent,domainClassName,"container",WRITE)
+//        } else {
+//            securityACLService.checkFullOrRestrictedForOwner(domainIdent,domainClassName)
+//        }
+//        def result = attachedFileService.add(filename,upload.getBytes(),domainIdent,domainClassName)
+//
+//        responseSuccess(result)
+//
+//    }
 
     @RestApiMethod(description="Delete an attached file")
     @RestApiParams(params=[

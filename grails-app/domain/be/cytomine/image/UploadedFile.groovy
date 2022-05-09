@@ -194,10 +194,8 @@ class UploadedFile extends CytomineDomain implements Serializable {
     }
 
     def getPath() {
-        if (isVirtual())
-            return null;
-        //[PIMS] Image server base path is no more required.
-        return Paths.get(/*imageServer?.basePath, user.id as String,*/ filename).toString()
+        //TODO: use a directory per storage
+        return filename
     }
 
     def beforeInsert() {
@@ -212,6 +210,10 @@ class UploadedFile extends CytomineDomain implements Serializable {
         lTree += id
     }
 
+    CytomineDomain container() {
+        return storage
+    }
+
     static def archiveFormats() {
         return ["ZIP", "TAR", "GZTAR", "BZTAR", "XZTAR"]
     }
@@ -221,10 +223,6 @@ class UploadedFile extends CytomineDomain implements Serializable {
     }
 
     boolean isVirtual() {
-        return contentType == "virtual/stack"; //TODO
-    }
-
-    CytomineDomain container() {
-        return storage
+        return contentType.toUpperCase() == "VIRTUALSTACK";
     }
 }

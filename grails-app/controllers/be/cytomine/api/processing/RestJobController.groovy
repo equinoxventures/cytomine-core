@@ -54,6 +54,7 @@ class RestJobController extends RestController {
     def securityACLService
     def jobRuntimeService
     def statsService
+    def transactionService
 
     /**
      * List all job
@@ -257,6 +258,7 @@ class RestJobController extends RestController {
             }
         }
     }
+
 
     /**
      * Delete the full data set build by the job

@@ -100,14 +100,6 @@ class UserUrlMappings {
         }
 
 
-        "/api/ldap/user.$format"(controller:"restUser"){
-            action = [POST:"addFromLDAP"]
-        }
-        "/api/ldap/$username/user.$format"(controller:"restUser"){
-            action = [GET:"isInLdap"]
-        }
-
-
         "/api/domain/$domainClassName/$domainIdent/user/$user.$format"(controller:"restACL"){
             action = [GET:"list",POST:"add",DELETE: "delete"]
         }

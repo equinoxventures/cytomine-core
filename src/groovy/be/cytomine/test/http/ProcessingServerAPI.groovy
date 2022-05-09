@@ -1,7 +1,5 @@
 package be.cytomine.test.http
 
-import be.cytomine.processing.ProcessingServer
-
 /*
 * Copyright (c) 2009-2022. Authors: see NOTICE file.
 *
@@ -21,6 +19,7 @@ import be.cytomine.processing.ProcessingServer
 import be.cytomine.processing.Software
 import be.cytomine.test.Infos
 import grails.converters.JSON
+import be.cytomine.processing.ProcessingServer
 
 class ProcessingServerAPI extends DomainAPI {
 

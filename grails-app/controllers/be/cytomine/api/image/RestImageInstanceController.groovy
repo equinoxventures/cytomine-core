@@ -22,8 +22,6 @@ import be.cytomine.Exception.InvalidRequestException
 import be.cytomine.api.RestController
 import be.cytomine.image.ImageInstance
 import be.cytomine.image.SliceInstance
-import be.cytomine.image.multidim.ImageGroup
-import be.cytomine.meta.Property
 import be.cytomine.ontology.UserAnnotation
 import be.cytomine.project.Project
 import be.cytomine.security.SecUser
@@ -119,9 +117,9 @@ class RestImageInstanceController extends RestController {
             def fieldFormat = []
             responseSuccess(dataTablesService.process(params, ImageInstance, where, fieldFormat,project))
         }
-        else if (project && light) {
-            responseSuccess(imageInstanceService.listLight(project))
-        }
+//        else if (project && light) {
+//            responseSuccess(imageInstanceService.listLight(project))
+//        }
         else if (project && !params.tree) {
             String sortColumn = params.sort ?: "created"
             String sortDirection = params.order ?: "desc"

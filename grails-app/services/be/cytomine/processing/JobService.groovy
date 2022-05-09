@@ -20,7 +20,6 @@ import be.cytomine.Exception.CytomineMethodNotYetImplementedException
 import be.cytomine.Exception.InvalidRequestException
 import be.cytomine.Exception.WrongArgumentException
 import be.cytomine.command.*
-import be.cytomine.meta.AttachedFile
 import be.cytomine.project.Project
 import be.cytomine.security.SecUser
 import be.cytomine.security.SecUserSecRole
@@ -55,8 +54,6 @@ class JobService extends ModelService {
     def dataSource
     def currentRoleServiceProxy
     def securityACLService
-
-   // static final String[] IGNORES_JOB_PARAMETER = cytomine_host, cytomine_public_key, cytomine_private_key, cytomine_id_software, cytomine_id_project
 
     def currentDomain() {
         return Job
@@ -197,6 +194,7 @@ class JobService extends ModelService {
                 mapParams["j_favorite_2"] = (mapParams["j_favorite_2"] == 'true');
             }
         }
+
         // https://stackoverflow.com/a/42080302
         if (mapParams.isEmpty() && usernameParams.isEmpty()) {
             mapParams = []
@@ -211,7 +209,7 @@ class JobService extends ModelService {
         sql.eachRow(request, mapParams) {
             def map = [:]
 
-            for(int i =1; i<=((GroovyResultSet) it).getMetaData().getColumnCount(); i++){
+            for (int i = 1; i <= ((GroovyResultSet) it).getMetaData().getColumnCount(); i++) {
                 String key = ((GroovyResultSet) it).getMetaData().getColumnName(i)
                 String objectKey = key.replaceAll("(_)([A-Za-z0-9])", { Object[] test -> test[2].toUpperCase() })
 
@@ -221,7 +219,7 @@ class JobService extends ModelService {
 
             // I mock methods and fields to pass through getDataFromDomain of Project
             map["class"] = Job.class
-            map['project'] = [id : map['projectId']]
+            map['project'] = [id: map['projectId']]
             map['software'] = [
                     id             : map['softwareId'],
                     name           : map['softwareName'],
@@ -235,8 +233,8 @@ class JobService extends ModelService {
             ]
             map['processingServer'] = [id: map['processingServerId']]
 
-
             def line = Job.getDataFromDomain(map)
+
             if (extended.withUser) {
                 line.putAt('username', map.username)
                 line.putAt('userJob', map.userJobId)
@@ -379,7 +377,9 @@ class JobService extends ModelService {
     }
 
     def markAsFavorite(Job job, boolean favorite) {
-        new Sql(dataSource).executeUpdate("UPDATE job SET favorite = ${favorite} WHERE id = ${job.id}");
+        def sql = new Sql(dataSource)
+        sql.executeUpdate("UPDATE job SET favorite = ${favorite} WHERE id = ${job.id}");
+        sql.close()
         job.favorite = favorite
         return job
     }

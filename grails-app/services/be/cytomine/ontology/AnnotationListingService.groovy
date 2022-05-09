@@ -86,6 +86,7 @@ class AnnotationListingService extends ModelService {
 
         def realColumn = []
         def request = al.getAnnotationsRequest()
+        log.debug(request)
 
         boolean termAsked = false
         boolean trackAsked = false

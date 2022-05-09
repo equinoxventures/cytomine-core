@@ -51,9 +51,6 @@ class AnnotationUrlMappings {
             action = [GET:"cropParameters"]
         }
 
-        "/api/annotation/$id/profile.$format"(controller: "restAnnotationDomain") {
-            action = [GET: "profile"]
-        }
 
         //keep this for retrieval
         "/api/annotation/$id/cropMin.$format"(controller: "restAnnotationDomain"){
@@ -231,14 +228,28 @@ class AnnotationUrlMappings {
         "/api/annotation_action.$format"(controller: "restAnnotationAction"){
             action = [POST:"add"]
         }
+        "/api/annotationaction.$format"(controller: "restAnnotationAction"){
+            action = [POST:"add"]
+        }
+
         "/api/imageinstance/$image/annotation_action.$format" (controller : "restAnnotationAction") {
             action = [GET:"listByImage"]
         }
+        "/api/imageinstance/$image/annotationactions.$format" (controller : "restAnnotationAction") {
+            action = [GET:"listByImage"]
+        }
+
         "/api/sliceinstance/$slice/annotation_action.$format" (controller : "restAnnotationAction") {
+            action = [GET:"listBySlice"]
+        }
+        "/api/sliceinstance/$slice/annotationactions.$format" (controller : "restAnnotationAction") {
             action = [GET:"listBySlice"]
         }
 
         "/api/project/$project/annotation_action/count.$format"(controller: "restAnnotationAction"){
+            action = [GET:"countByProject"]
+        }
+        "/api/project/$project/annotationaction/count.$format"(controller: "restAnnotationAction"){
             action = [GET:"countByProject"]
         }
     }

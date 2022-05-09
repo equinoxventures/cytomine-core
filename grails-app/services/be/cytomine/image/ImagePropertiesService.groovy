@@ -81,9 +81,8 @@ class ImagePropertiesService implements Serializable {
             image.magnification = properties?.instrument?.objective?.nominal_magnification
 
             image.bitPerSample = properties?.image?.bits ?: 8
-//            image.tileSize = 256 // [PIMS] At this stage, we only support normalized-tiles.
-//
-//            image.extractedMetadata = new Date()
+            image.tileSize = 256 // [PIMS] At this stage, we only support normalized-tiles.
+
             image.save(flush: true, failOnError: true)
 
             if (deep) {

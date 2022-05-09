@@ -163,7 +163,6 @@ class AbstractImageService extends ModelService {
      * @return  Response structure (new domain data, old domain data..)
      */
     def update(AbstractImage image,def jsonNewData) throws CytomineException {
-
         securityACLService.checkAtLeastOne(image,WRITE)
         SecUser currentUser = cytomineService.getCurrentUser()
         def attributes = JSON.parse(image.encodeAsJSON())

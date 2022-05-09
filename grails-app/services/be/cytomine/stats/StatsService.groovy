@@ -147,6 +147,7 @@ class StatsService extends ModelService {
         if(reverseOrder) {
             return data.reverse()
         }
+        sql.close()
 
         return data
     }
@@ -217,8 +218,30 @@ class StatsService extends ModelService {
                 "GROUP BY at.term_id ") {
             result.get(it[0]).value = it[1]
         }
+        sql.close()
 
         return result.values()
+    }
+
+    def statPerTermAndImage(Project project, Date startDate, Date endDate) {
+        def sql = new Sql(dataSource)
+        def results = []
+        sql.eachRow("SELECT ua.image_id, at.term_id, COUNT(ua.id) as count " +
+                "FROM user_annotation ua " +
+                "LEFT JOIN annotation_term at ON at.user_annotation_id = ua.id " +
+                "WHERE ua.deleted is NULL and at.deleted is NULL and ua.project_id = $project.id " +
+                (startDate ? "AND ua.created > '$startDate' " : "") +
+                (endDate ? "AND ua.created < '$endDate' " : "") +
+                "GROUP BY ua.image_id, at.term_id " +
+                "ORDER BY ua.image_id, at.term_id ") {
+            results << [
+                    image: it[0],
+                    term: it[1],
+                    countAnnotations: it[2]
+            ]
+        }
+        sql.close()
+        return results
     }
 
     def statTerm(Project project, Date startDate, Date endDate, boolean leafsOnly) {
@@ -263,6 +286,7 @@ class StatsService extends ModelService {
         stats.each {
             list << ["id": ids.get(it.key), "key": it.key, "value": it.value, "color": color.get(it.key)]
         }
+        sql.close()
         return list
     }
 

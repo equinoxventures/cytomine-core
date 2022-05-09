@@ -69,6 +69,13 @@ class BootstrapUtilsService {
         return result
     }
 
+    def addSqlColumn(def table, def column, def constraints) {
+        def sql = new Sql(dataSource)
+        def result = sql.executeUpdate('ALTER TABLE ' + table + ' ADD COLUMN ' + column + ' ' + constraints + ';')
+        sql.close()
+        return result
+    }
+
     def updateSqlColumnConstraint(def table, def column, def newSqlConstraint) {
         def sql = new Sql(dataSource)
         def result

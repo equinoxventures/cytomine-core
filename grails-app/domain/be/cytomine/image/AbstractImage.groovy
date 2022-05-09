@@ -88,6 +88,9 @@ class AbstractImage extends CytomineDomain implements Serializable {
     @RestApiObjectField(description = "The image owner", mandatory = false, defaultValue = "current user")
     SecUser user //owner
 
+    @RestApiObjectField(description = "The image tile size", defaultValue = "256")
+    Integer tileSize = 256
+
     static belongsTo = Sample
 
     @RestApiObjectFields(params=[
@@ -133,6 +136,7 @@ class AbstractImage extends CytomineDomain implements Serializable {
         colorspace(nullable: true)
         user(nullable: true)
         samplePerPixel(nullable: true)
+        tileSize(nullable: true)
     }
 
     /**
@@ -170,6 +174,7 @@ class AbstractImage extends CytomineDomain implements Serializable {
         domain.magnification = JSONUtils.getJSONAttrInteger(json,'magnification',null)
 
         domain.colorspace = JSONUtils.getJSONAttrStr(json, 'colorspace', false)
+        domain.tileSize = JSONUtils.getJSONAttrInteger(json, 'tileSize', 256)
         return domain;
     }
 
@@ -201,6 +206,8 @@ class AbstractImage extends CytomineDomain implements Serializable {
         returnArray['fps'] = image?.fps
 
         returnArray['zoom'] = image?.getZoomLevels()
+        returnArray['tileSize'] = image?.tileSize
+        returnArray['isVirtual'] = image?.isVirtual()
 
         returnArray['magnification'] = image?.magnification
         returnArray['bitPerSample'] = image?.bitPerSample
@@ -218,6 +225,10 @@ class AbstractImage extends CytomineDomain implements Serializable {
 
     def getPath() {
         return uploadedFile?.path
+    }
+
+    def isVirtual() {
+        return uploadedFile?.isVirtual()
     }
 
     def getSliceCoordinates() {
@@ -258,7 +269,7 @@ class AbstractImage extends CytomineDomain implements Serializable {
         double tmpWidth = width
         double tmpHeight = height
         def nbZoom = 0
-        while (tmpWidth > 256 || tmpHeight > 256) {
+        while (tmpWidth > tileSize || tmpHeight > tileSize) {
             nbZoom++
             tmpWidth /= 2
             tmpHeight /= 2
