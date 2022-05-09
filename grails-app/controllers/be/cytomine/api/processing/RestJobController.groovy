@@ -54,6 +54,7 @@ class RestJobController extends RestController {
     def securityACLService
     def jobRuntimeService
     def statsService
+    def transactionService
 
     /**
      * List all job
