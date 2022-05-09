@@ -601,7 +601,7 @@ class SecUserService extends ModelService {
 
         String request = "SELECT DISTINCT u.id as id, u.username as username, " +
                 "s.name as softwareName, s.software_version as softwareVersion, " +
-                "j.created as created, u.job_id as job " +
+                "j.created as created, u.job_id as job, j.favorite as favorite " +
                 "FROM annotation_index ai " +
                 "RIGHT JOIN slice_instance si ON ai.slice_id = si.id " + 
                 "RIGHT JOIN sec_user u ON ai.user_id = u.id " +
@@ -621,6 +621,7 @@ class SecUserService extends ModelService {
 
             item.created = it.created
             item.algo = true
+            item.favorite = it.favorite
             item.job = it.job
             data << item
         }
