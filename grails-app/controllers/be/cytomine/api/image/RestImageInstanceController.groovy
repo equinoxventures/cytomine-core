@@ -119,9 +119,9 @@ class RestImageInstanceController extends RestController {
             def fieldFormat = []
             responseSuccess(dataTablesService.process(params, ImageInstance, where, fieldFormat,project))
         }
-        else if (project && light) {
-            responseSuccess(imageInstanceService.listLight(project))
-        }
+//        else if (project && light) {
+//            responseSuccess(imageInstanceService.listLight(project))
+//        }
         else if (project && !params.tree) {
             String sortColumn = params.sort ?: "created"
             String sortDirection = params.order ?: "desc"
