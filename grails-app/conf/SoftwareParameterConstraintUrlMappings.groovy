@@ -20,6 +20,9 @@ class SoftwareParameterConstraintUrlMappings {
         "/api/software_parameter/$idParameter/software_parameter_constraint.$format"(controller: "restSoftwareParameterConstraint") {
             action = [GET: "listBySoftwareParameter"]
         }
+        "/api/softwareparameter/$idParameter/constraint.$format"(controller: "restSoftwareParameterConstraint") {
+            action = [GET: "listBySoftwareParameter"]
+        }
         "/api/software_parameter_constraint.$format"(controller: "restSoftwareParameterConstraint") {
             action = [POST: "add"]
         }
