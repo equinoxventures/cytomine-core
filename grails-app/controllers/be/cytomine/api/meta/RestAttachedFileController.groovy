@@ -123,6 +123,7 @@ class RestAttachedFileController extends RestController {
             domainClassName = domainClassName ?: multipart.getParameter('domainClassName')
             domainIdent = domainIdent ?: Long.parseLong(multipart.getParameter('domainIdent'))
             String filename = multipart.getParameter('filename') ?: f.originalFilename
+            key = key ?: multipart.getParameter('key')
 
             log.info "Upload $filename for domain $domainClassName $domainIdent"
             log.info "File size = ${f.size}"
@@ -139,8 +140,8 @@ class RestAttachedFileController extends RestController {
                     domainIdent: domainIdent,
                     domainClassName: domainClassName,
                     filename: filename,
-                    size: f.getSize(),
-                    key: key
+                    key: key,
+                    size: f.getSize()
             ])
             responseSuccess(attachedFileService.add(json, f))
         } else {

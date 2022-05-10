@@ -52,8 +52,8 @@ class AttachedFile extends CytomineDomain {
 
     static constraints = {
         domainClassName(nullable: false, blank:  false)
-        key(nullable: true)
         data(nullable: true)
+        key(nullable: true)
     }
     static mapping = {
         id generator: "assigned"
