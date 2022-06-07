@@ -50,6 +50,10 @@ class UserSecurityTests extends SecurityTestsAbstract {
 
         //check if admin can add/del user from project
         Project project = BasicInstanceBuilder.getProjectNotExist(true)
+
+        //add admin as a true manager
+        assert (200 == ProjectAPI.addUserProject(project.id,BasicInstanceBuilder.getUser(USERNAMEADMIN,PASSWORDADMIN).id,USERNAMEADMIN,PASSWORDADMIN).code)
+
         assert (200 == ProjectAPI.addUserProject(project.id,user1.id,USERNAMEADMIN,PASSWORDADMIN).code)
         assert (200 == ProjectAPI.deleteUserProject(project.id,user1.id,USERNAMEADMIN,PASSWORDADMIN).code)
 

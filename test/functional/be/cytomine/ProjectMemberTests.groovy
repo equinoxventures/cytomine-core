@@ -100,6 +100,11 @@ class ProjectMemberTests {
     void testAddDeleteUserToProject() {
         def project = BasicInstanceBuilder.getProjectNotExist()
         BasicInstanceBuilder.saveDomain(project)
+
+        //Add super admin as a true manager
+        def resAddUser = ProjectAPI.addUserProject(project.id, BasicInstanceBuilder.getSuperAdmin(Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD).id, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
+        assert 200 == resAddUser.code
+
         User u1 = BasicInstanceBuilder.user1
 
         def result = UserAPI.list(project.id,"project","user",Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
@@ -108,14 +113,13 @@ class ProjectMemberTests {
 
 
         //Add project right for user 1
-        def resAddUser = ProjectAPI.addUserProject(project.id, u1.id, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
+        resAddUser = ProjectAPI.addUserProject(project.id, u1.id, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
         assert 200 == resAddUser.code
         result = UserAPI.list(project.id,"project","user",Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
         json = JSON.parse(result.data)
         assert UserAPI.containsInJSONList(u1.id,json)
 
-        resAddUser = ProjectAPI.deleteUserProject(project.id, u1.id, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
-        assert 200 == resAddUser.code
+        assert 200 == ProjectAPI.deleteUserProject(project.id, u1.id, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD).code
         result = UserAPI.list(project.id,"project","user",Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
         json = JSON.parse(result.data)
         assert !UserAPI.containsInJSONList(u1.id,json)
@@ -129,6 +133,10 @@ class ProjectMemberTests {
             users << BasicInstanceBuilder.getUserNotExist(true)
         }
 
+        //Add super admin as a true manager
+        def resAddUser = ProjectAPI.addUserProject(project.id, BasicInstanceBuilder.getSuperAdmin(Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD).id, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
+        assert 200 == resAddUser.code
+
         def result = UserAPI.list(project.id,"project","user",Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
         def json = JSON.parse(result.data)
         Long size = json.size
@@ -136,7 +144,7 @@ class ProjectMemberTests {
         def userIds = users.collect{it.id}
 
         //Add
-        def resAddUser = ProjectAPI.addUsersProject(project.id, userIds, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
+        resAddUser = ProjectAPI.addUsersProject(project.id, userIds, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
         assert 200 == resAddUser.code
         result = UserAPI.list(project.id,"project","user",Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
         json = JSON.parse(result.data)
@@ -155,8 +163,7 @@ class ProjectMemberTests {
         assert json.size == size + users.size()
 
         //Delete
-        resAddUser = ProjectAPI.deleteUsersProject(project.id, userIds.subList(0, 2), Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
-        assert 200 == resAddUser.code
+        assert 200 == ProjectAPI.deleteUsersProject(project.id, userIds.subList(0, 2), Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD).code
         result = UserAPI.list(project.id,"project","user",Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
         json = JSON.parse(result.data)
         assert json.size == size + users.size()-2
@@ -177,20 +184,24 @@ class ProjectMemberTests {
     void testAddDeleteAdminToProject() {
         def project = BasicInstanceBuilder.getProjectNotExist()
         BasicInstanceBuilder.saveDomain(project)
+
+        //Add super admin as a true manager
+        def resAddUser = ProjectAPI.addUserProject(project.id, BasicInstanceBuilder.getSuperAdmin(Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD).id, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
+        assert 200 == resAddUser.code
+
         User u1 = BasicInstanceBuilder.user1
         def result = UserAPI.list(project.id,"project","admin",Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
         def json = JSON.parse(result.data)
         assert !UserAPI.containsInJSONList(u1.id,json)
 
         //Add project right for user 2
-        def resAddUser = ProjectAPI.addAdminProject(project.id, u1.id, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
+        resAddUser = ProjectAPI.addAdminProject(project.id, u1.id, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
         assert 200 == resAddUser.code
         result = UserAPI.list(project.id,"project","admin",Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
         json = JSON.parse(result.data)
         assert UserAPI.containsInJSONList(u1.id,json)
 
-        resAddUser = ProjectAPI.deleteAdminProject(project.id, u1.id, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
-        assert 200 == resAddUser.code
+        assert 200 == ProjectAPI.deleteAdminProject(project.id, u1.id, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD).code
         result = UserAPI.list(project.id,"project","admin",Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
         json = JSON.parse(result.data)
         assert !UserAPI.containsInJSONList(u1.id,json)

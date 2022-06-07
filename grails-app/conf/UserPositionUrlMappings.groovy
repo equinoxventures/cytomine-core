@@ -24,7 +24,7 @@ class UserPositionUrlMappings {
 
     static mappings = {
         "/api/imageinstance/$image/position.$format" (controller : "restUserPosition") {
-            action = [POST:"add"]
+            action = [POST:"add",GET:"list"]
         }
         "/api/imageinstance/$id/position/$user.$format" (controller : "restUserPosition") {
             action = [GET:"lastPositionByUser"]
@@ -32,10 +32,6 @@ class UserPositionUrlMappings {
 
         "/api/sliceinstance/$slice/position.$format" (controller : "restUserPosition") {
             action = [POST:"add"]
-        }
-
-        "/api/imageinstance/$image/position.$format" (controller : "restUserPosition") {
-            action = [GET:"list"]
         }
 
         //Deprecated
