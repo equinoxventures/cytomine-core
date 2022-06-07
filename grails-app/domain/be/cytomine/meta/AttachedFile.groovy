@@ -17,6 +17,8 @@ package be.cytomine.meta
 */
 
 import be.cytomine.CytomineDomain
+import be.cytomine.utils.JSONUtils
+import grails.util.Holders
 import org.restapidoc.annotation.RestApiObject
 import org.restapidoc.annotation.RestApiObjectField
 import org.restapidoc.annotation.RestApiObjectFields
@@ -50,6 +52,7 @@ class AttachedFile extends CytomineDomain {
 
     static constraints = {
         domainClassName(nullable: false, blank:  false)
+        data(nullable: true)
         key(nullable: true)
     }
     static mapping = {
@@ -89,5 +92,19 @@ class AttachedFile extends CytomineDomain {
         returnArray['filename'] = domain?.filename
         returnArray['key'] = domain?.key
         return returnArray
+    }
+
+    static AttachedFile insertDataIntoDomain(def json, def domain = new AttachedFile()){
+        domain.id = JSONUtils.getJSONAttrLong(json,'id',null)
+        domain.domainIdent = JSONUtils.getJSONAttrLong(json, 'domainIdent', null)
+        domain.domainClassName = JSONUtils.getJSONAttrStr(json, 'domainClassName')
+        domain.filename = JSONUtils.getJSONAttrStr(json,'filename')
+        domain.key = JSONUtils.getJSONAttrStr(json, 'key')
+
+        return domain
+    }
+
+    File getFile() {
+        return new File(Holders.config.cytomine.attachedFiles.path, (String) id)
     }
 }
