@@ -73,7 +73,11 @@ class AttachedFileTests {
     }
 
     void testDownloadAttachedFile() {
-        def result = AttachedFileAPI.download(BasicInstanceBuilder.getAttachedFileNotExist("test/functional/be/cytomine/utils/images/preview.png",true).id, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
+        def domain = BasicInstanceBuilder.getAttachedFileNotExist(false)
+        def result = AttachedFileAPI.upload(domain.domainClassName,domain.domainIdent,new File("test/functional/be/cytomine/utils/images/preview.png"),Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
+        assert 200 == result.code
+        def json = JSON.parse(result.data)
+        result = AttachedFileAPI.download(json.id, Infos.SUPERADMINLOGIN, Infos.SUPERADMINPASSWORD)
         assert 200 == result.code
     }
 
