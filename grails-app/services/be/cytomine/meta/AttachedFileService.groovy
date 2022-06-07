@@ -65,7 +65,7 @@ class AttachedFileService extends ModelService {
         }
         catch (IOException e) {
             delete(af)
-            throw new ServerException("File cannot be stored")
+            throw new ServerException("File ${af.getFile().absolutePath} cannot be stored : ${e.getMessage()}")
         }
 
         return af // TODO: to be consistent with previous API, no command is returned (to be changed and syc with clients)
