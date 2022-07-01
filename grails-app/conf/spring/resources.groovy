@@ -57,7 +57,7 @@ beans = {
         //defaultTargetUrl = '/'
     }
 
-    authenticationEntryPoint(CustomAjaxAwareAuthenticationEntryPoint, config.auth.loginFormUrl) {
+    authenticationEntryPoint(CustomAjaxAwareAuthenticationEntryPoint, '/') {
         grailsApplication = ref('grailsApplication')
         ajaxLoginFormUrl = '/login/authAjax'
         forceHttps = false

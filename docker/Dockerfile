@@ -47,8 +47,8 @@ RUN cp /tmp/logrotate-3.18.0/logrotate /usr/sbin/logrotate
 RUN ln -s /usr/local/tomcat /var/lib/tomcat9 #for backward compatibility
 RUN ln -s /usr/share/tomcat9/.grails /root/.grails #for backward compatibility
 
-RUN rm -rf /var/lib/tomcat9/webapps/* && cd /var/lib/tomcat9/webapps/  && wget https://github.com/cytomine/Cytomine-core/releases/download/v3.2.0/Core.war -O ROOT.war
-RUN cd /var/lib/tomcat9/  && wget https://github.com/cytomine/Cytomine-core/releases/download/v3.2.0/restapidoc.json -O restapidoc.json
+RUN rm -rf /var/lib/tomcat9/webapps/* && cd /var/lib/tomcat9/webapps/  && wget https://github.com/cytomine/Cytomine-core/releases/download/v3.2.2/Core.war -O ROOT.war
+RUN cd /var/lib/tomcat9/  && wget https://github.com/cytomine/Cytomine-core/releases/download/v3.2.2/restapidoc.json -O restapidoc.json
 
 RUN mkdir -p /usr/share/tomcat9/.grails
 
