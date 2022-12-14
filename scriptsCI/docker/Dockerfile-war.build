@@ -30,6 +30,7 @@ ENV VERSION_NUMBER_ENV=$VERSION_NUMBER
 
 RUN sed -i -- 's/app.version=0.0.0/app.version='$VERSION_NUMBER'/g' /app/application.properties
 ENV GRAILS_OPTS="-Xmx2G -Xms512m -XX:MaxPermSize=512m"
+COPY ./scriptsCI/cytomineconfig.groovy /root/.grails/cytomineconfig.groovy
 
 WORKDIR /app
 CMD /tools/grails-2.4.4/bin/grails war

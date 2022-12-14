@@ -38,6 +38,7 @@ class CytomineMailService {
     def send(String from, String[] to, String[] cc, String[] bcc, String subject, String message, def attachment = null) {
 
         String defaultEmail = Holders.getGrailsApplication().config.grails.notification.email
+        String defaultEmailUsername = Holders.getGrailsApplication().config.grails.notification.username
 
         if (!from) from = defaultEmail
 
@@ -62,7 +63,7 @@ class CytomineMailService {
         //Create Mail Sender
         def sender = new JavaMailSenderImpl()
         sender.setJavaMailProperties(props)
-        sender.setUsername(defaultEmail)
+        sender.setUsername(defaultEmailUsername)
         sender.setPassword(password)
         sender.setDefaultEncoding("UTF-8")
         MimeMessage mail = sender.createMimeMessage()
@@ -72,7 +73,7 @@ class CytomineMailService {
         helper.setFrom(from)
         helper.setTo(to)
         //helper.setCc(cc)
-        helper.setBcc(bcc)
+        //helper.setBcc(bcc)
         helper.setSubject(subject)
         helper.setText("",message)
         attachment?.each {
