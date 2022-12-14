@@ -1,0 +1,40 @@
+name: Docker Image BUILD AND PUSH
+
+on:
+  push:    
+   branches:
+   - main
+   - release/*
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  buildAndpush:
+
+    runs-on: ubuntu-latest
+ 
+    steps:
+    - id: commit
+      uses: pr-mpt/actions-commit-hash@v2
+    - name: Docker Login
+      uses: docker/login-action@v2.1.0
+      with:
+        username: seapapa
+        password: dckr_pat_y-koGhzYZ5v1WwqNBm3oDAYiJGk
+    - uses: actions/checkout@v3
+    - name: Build the Docker image
+      run: |
+        docker build --rm -f scriptsCI/docker/Dockerfile-war.build --build-arg VERSION_NUMBER=3.2.3 -t seapapa/core:war .
+        containerId=$(docker create seapapa/core:war )
+        docker start -ai  $containerId
+        mkdir ci
+        docker cp $containerId:/app/target/cytomine.war ./ci
+        docker rm $containerId
+        docker build --rm -f scriptsCI/docker/core/Dockerfile -t  seapapa/core:${{ steps.commit.outputs.short }} .
+        docker tag seapapa/core:${{ steps.commit.outputs.short }} seapapa/core:latest
+
+    - name: Docker push
+      run: | 
+        docker push seapapa/core:${{ steps.commit.outputs.short }}
+        docker push seapapa/core:latest
