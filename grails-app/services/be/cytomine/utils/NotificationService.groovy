@@ -35,7 +35,6 @@ class NotificationService {
     def renderService
     def abstractImageService
     def imageServerService
-
     public def notifyNewImageAvailable(SecUser currentUser, AbstractImage abstractImage, def projects) {
         User recipient = null
         if (currentUser instanceof User) {
@@ -135,7 +134,7 @@ class NotificationService {
         ])
 
         cytomineMailService.send(
-                cytomineMailService.NO_REPLY_EMAIL,
+                null,
                 [sender.getEmail()] as String[],
                 null,
                 receiversEmail,
@@ -153,7 +152,7 @@ class NotificationService {
                 phoneNumber: grailsApplication.config.grails.instanceHostPhoneNumber
         ])
         cytomineMailService.send(
-                cytomineMailService.NO_REPLY_EMAIL,
+                null,
                 (String[]) [user.getEmail()],
                 null,
                 null,
@@ -173,7 +172,7 @@ class NotificationService {
         ])
 
         cytomineMailService.send(
-                cytomineMailService.NO_REPLY_EMAIL,
+                null,
                 (String[]) [user.getEmail()],
                 null,
                 null,
