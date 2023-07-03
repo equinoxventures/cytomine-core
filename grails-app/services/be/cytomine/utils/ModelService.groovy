@@ -27,6 +27,7 @@ import be.cytomine.command.Command
 import be.cytomine.command.DeleteCommand
 import be.cytomine.command.Transaction
 import be.cytomine.meta.AttachedFile
+import be.cytomine.meta.SnapshotFile
 import be.cytomine.meta.Description
 import be.cytomine.meta.Property
 import be.cytomine.meta.TagDomainAssociation
@@ -55,6 +56,7 @@ abstract class ModelService {
     def grailsApplication
     def taskService
     def attachedFileService
+    def snapshotFileService
     def descriptionService
     def propertyService
     def tagDomainAssociationService
@@ -669,6 +671,11 @@ abstract class ModelService {
     def deleteDependentAttachedFile(CytomineDomain domain, Transaction transaction, Task task = null) {
         AttachedFile.findAllByDomainClassNameAndDomainIdent(domain.class.name, domain.id).each {
             attachedFileService.delete(it, transaction,null, false)
+        }
+    }
+    def deleteDependentSnapshotFile(CytomineDomain domain, Transaction transaction, Task task = null) {
+        SnapshotFile.findAllByDomainClassNameAndDomainIdent(domain.class.name, domain.id).each {
+            snapshotFileService.delete(it, transaction,null, false)
         }
     }
     def deleteDependentDescription(CytomineDomain domain, Transaction transaction, Task task = null) {

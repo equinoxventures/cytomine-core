@@ -127,7 +127,7 @@ cytomine.jobdata.filesystemPath = "algo/data/"
 grails.messageBrokerServerURL = "localhost:5672"
 environments {
     test {
-        grails.messageBrokerServerURL = "localhost:5673"
+        grails.messageBrokerServerURL = "localhost:5672"
     }
 }
 // set per-environment serverURL stem for creating absolute links

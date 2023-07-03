@@ -45,5 +45,26 @@ class AttachedFileUrlMappings {
         "/api/attachedfileRTEditor.$format"(controller: "restAttachedFile") {
             action = [POST:"uploadFromRTEditor"]
         }
+        "/api/snapshotfile.$format"(controller: "restSnapshotFile") {
+            action = [GET:"list", POST:"upload",PUT:"upload"]
+        }
+
+        "/api/domain/$domainClassName/$domainIdent/snapshotfile.$format"(controller: "restSnapshotFile") {
+            action = [GET:"listByDomain"]
+        }
+
+        "/api/snapshotfile/$id.$format"(controller: "restSnapshotFile") {
+            action = [GET:"show", DELETE: "delete"]
+        }
+
+        "/api/snapshotfile/$id/download"(controller: "restSnapshotFile") {
+            action = [GET:"download"]
+        }
+
+
+        // FOR JS
+        "/api/snapshotfileRTEditor.$format"(controller: "restSnapshotFile") {
+            action = [POST:"uploadFromRTEditor"]
+        }
     }
 }

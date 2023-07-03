@@ -30,6 +30,7 @@ import be.cytomine.project.Project
 import be.cytomine.security.SecUser
 import be.cytomine.security.User
 import be.cytomine.meta.AttachedFile
+import be.cytomine.meta.SnapshotFile
 import be.cytomine.utils.JSONUtils
 import be.cytomine.utils.ModelService
 import be.cytomine.utils.Task
@@ -50,6 +51,7 @@ class AbstractImageService extends ModelService {
     def storageService
     def imageInstanceService
     def attachedFileService
+    def snapshotFileService
     def currentRoleServiceProxy
     def securityACLService
     def imageServerService
@@ -327,6 +329,12 @@ class AbstractImageService extends ModelService {
     def deleteDependentAttachedFile(AbstractImage ai, Transaction transaction,Task task=null) {
         AttachedFile.findAllByDomainIdentAndDomainClassName(ai.id, ai.class.getName()).each {
             attachedFileService.delete(it,transaction,null,false)
+        }
+    }
+
+    def deleteDependentSnapshotFile(AbstractImage ai, Transaction transaction,Task task=null) {
+        SnapshotFile.findAllByDomainIdentAndDomainClassName(ai.id, ai.class.getName()).each {
+            snapshotFileService.delete(it,transaction,null,false)
         }
     }
 
