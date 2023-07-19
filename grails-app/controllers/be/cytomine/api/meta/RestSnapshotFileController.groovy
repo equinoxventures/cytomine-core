@@ -23,7 +23,10 @@ import be.cytomine.AnnotationDomain
 import be.cytomine.CytomineDomain
 import be.cytomine.Exception.WrongArgumentException
 import be.cytomine.meta.SnapshotFile
+import be.cytomine.security.SecUser
 import grails.converters.JSON
+import groovy.json.JsonSlurper
+import org.mortbay.jetty.Request
 import org.restapidoc.annotation.*
 import org.restapidoc.pojo.RestApiParamType
 import org.springframework.web.multipart.support.AbstractMultipartHttpServletRequest
@@ -31,6 +34,11 @@ import org.springframework.web.multipart.support.AbstractMultipartHttpServletReq
 import static org.springframework.security.acls.domain.BasePermission.DELETE
 import static org.springframework.security.acls.domain.BasePermission.READ
 import static org.springframework.security.acls.domain.BasePermission.WRITE
+import org.springframework.http.HttpEntity
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.web.client.RestTemplate
+import org.springframework.web.client.HttpClientErrorException
 
 /**
  * Controller for a description (big text data/with html format) on a specific domain
@@ -47,6 +55,32 @@ class RestSnapshotFileController extends RestController {
     def list() {
         securityACLService.checkAdmin(cytomineService.currentUser)
         responseSuccess(snapshotFileService.list())
+    }
+    @RestApiMethod(description="Send webhook")
+    def webhook() {
+        def jsonBody = new JsonSlurper().parseText(request.reader.text)
+        def url = jsonBody.sendUrl
+        jsonBody.remove('sendUrl')
+        HttpHeaders headers = new HttpHeaders()
+        headers.setContentType(MediaType.APPLICATION_JSON)
+        headers.set("username", grailsApplication.config.grails.snapshot.username)
+        headers.set("password", grailsApplication.config.grails.snapshot.password)
+        HttpEntity<String> entity = new HttpEntity<String>(jsonBody, headers)
+        RestTemplate restTemplate = new RestTemplate()
+        try {
+            String response = restTemplate.postForObject(url, entity, String.class)
+            String jsonString = """
+                {
+                    "webhookURL": "${url.toString()}",
+                    "response": ${response},               
+                }
+                """
+            def json = grails.converters.JSON.parse(jsonString)
+            responseSuccess(json)
+        } catch (HttpClientErrorException e) {
+            responseError(new WrongArgumentException(e.getResponseBodyAsString()))
+        }
+
     }
 
     @RestApiMethod(description="List all snapshot file for a given domain", listing=true)
