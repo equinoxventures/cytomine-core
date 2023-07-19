@@ -438,7 +438,6 @@ cytomine.customUI.project = [
         "project-explore-annotation-attached-files":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-explore-annotation-creation-info":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-explore-annotation-tracks":["ADMIN_PROJECT":true, "CONTRIBUTOR_PROJECT":true],
-        "project-explore-annotation-tags": ["ADMIN_PROJECT": true, "CONTRIBUTOR_PROJECT": true],
 
         //annotation tools
         "project-tools-main":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
@@ -464,6 +463,7 @@ cytomine.customUI.project = [
         "project-tools-move":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-tools-delete":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-tools-screenshot":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
+        "project-tools-snapshot":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-tools-copy-paste":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-tools-undo-redo":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
 
