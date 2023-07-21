@@ -18,6 +18,7 @@ package be.cytomine.api.meta
 
 import be.cytomine.api.RestController
 import be.cytomine.image.AbstractImage
+import be.cytomine.meta.Configuration
 import be.cytomine.project.Project
 import be.cytomine.AnnotationDomain
 import be.cytomine.CytomineDomain
@@ -37,6 +38,7 @@ import static org.springframework.security.acls.domain.BasePermission.WRITE
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.apache.commons.codec.binary.Base64;
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.HttpClientErrorException
 
@@ -50,6 +52,7 @@ class RestSnapshotFileController extends RestController {
     def securityACLService
     def cytomineService
     def snapshotFileService
+    def configurationService
 
     @RestApiMethod(description="List all snapshot file available", listing=true)
     def list() {
@@ -62,9 +65,21 @@ class RestSnapshotFileController extends RestController {
         def url = jsonBody.sendUrl
         jsonBody.remove('sendUrl')
         HttpHeaders headers = new HttpHeaders()
-        headers.setContentType(MediaType.APPLICATION_JSON)
-        headers.set("username", grailsApplication.config.grails.snapshot.username)
-        headers.set("password", grailsApplication.config.grails.snapshot.password)
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        Configuration username = null;
+        Configuration password = null;
+        try {
+            username = configurationService.readByKey('WEBHOOK_USERNAME')
+            password = configurationService.readByKey('WEBHOOK_PASSWORD')
+        } catch (ignored) {
+
+        }
+        if(username){
+            String auth = username.value+":"+password.value
+            byte[] encodedAuth = Base64.encodeBase64(auth.getBytes("UTF-8"))
+            String authHeader = "Basic " + new String(encodedAuth);
+            headers.set("Authorization", authHeader);
+        }
         HttpEntity<String> entity = new HttpEntity<String>(jsonBody, headers)
         RestTemplate restTemplate = new RestTemplate()
         try {
