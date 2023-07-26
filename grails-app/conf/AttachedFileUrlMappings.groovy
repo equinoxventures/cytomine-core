@@ -51,6 +51,9 @@ class AttachedFileUrlMappings {
         "/api/webhook.$format"(controller: "restSnapshotFile") {
             action = [ POST:"webhook"]
         }
+        "/api/sliceSnapshot.$format"(controller: "restSnapshotFile") {
+            action = [ POST:"getSnapshot"]
+        }
         "/api/domain/$domainClassName/$domainIdent/snapshotfile.$format"(controller: "restSnapshotFile") {
             action = [GET:"listByDomain"]
         }
