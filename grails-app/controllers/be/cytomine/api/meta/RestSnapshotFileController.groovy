@@ -18,6 +18,9 @@ package be.cytomine.api.meta
 
 import be.cytomine.api.RestController
 import be.cytomine.image.AbstractImage
+import be.cytomine.image.ImageInstance
+import be.cytomine.image.SliceInstance
+import be.cytomine.meta.AttachedFile
 import be.cytomine.meta.Configuration
 import be.cytomine.project.Project
 import be.cytomine.AnnotationDomain
@@ -25,6 +28,9 @@ import be.cytomine.CytomineDomain
 import be.cytomine.Exception.WrongArgumentException
 import be.cytomine.meta.SnapshotFile
 import be.cytomine.security.SecUser
+import be.cytomine.utils.GeometryUtils
+import com.vividsolutions.jts.geom.Geometry
+import com.vividsolutions.jts.io.WKTReader
 import grails.converters.JSON
 import groovy.json.JsonSlurper
 import org.mortbay.jetty.Request
@@ -53,6 +59,8 @@ class RestSnapshotFileController extends RestController {
     def cytomineService
     def snapshotFileService
     def configurationService
+    def imageInstanceService
+    def imageRetrievalService
 
     @RestApiMethod(description="List all snapshot file available", listing=true)
     def list() {
@@ -95,6 +103,38 @@ class RestSnapshotFileController extends RestController {
         } catch (HttpClientErrorException e) {
             responseError(new WrongArgumentException(e.getResponseBodyAsString()))
         }
+
+    }
+    @RestApiMethod(description="Get the snapshot from the image by location")
+    def getSnapshot() {
+        def jsonBody = new JsonSlurper().parseText(request.reader.text)
+        SliceInstance slice = SliceInstance.read(jsonBody.slice)
+        def server = grailsApplication.config.grails.imageServerURL[0]
+        def uri = "/slice/crop.jpg"
+        def geometry = new WKTReader().read(jsonBody.location)
+        def boundaries = params.boundaries
+        if (!boundaries && geometry) {
+            boundaries = GeometryUtils.getGeometryBoundaries(geometry)
+        }
+        def parameters = [
+                fif : slice.path,
+                mimeType : slice.mimeType,
+                topLeftX : boundaries.topLeftX,
+                topLeftY : boundaries.topLeftY,
+                width : boundaries.width,
+                height : boundaries.height,
+                location: geometry,
+                imageWidth : jsonBody.width,
+                imageHeight : jsonBody.height,
+                format : 'jpg',
+                maxSize : '1024'
+        ]
+        def snapshotUrl=makeGetUrl(uri, server, parameters)
+        def url = new URL(snapshotUrl)
+        def conn = url.openConnection()
+        def input = conn.inputStream
+        def result= snapshotFileService.add(jsonBody.imageName,input.getBytes(),null,jsonBody.image,jsonBody.imageClass)
+        responseSuccess(result)
 
     }
 
@@ -232,6 +272,23 @@ class RestSnapshotFileController extends RestController {
         }
 
         delete(snapshotFileService, JSON.parse("{id : $params.id}"),null)
+    }
+
+    private static def makeGetUrl(def uri, def server, def parameters) {
+        parameters = filterParameters(parameters)
+        String query = parameters.collect { key, value ->
+            if (value instanceof Geometry)
+                value = value.toText()
+
+            if (value instanceof String)
+                value = URLEncoder.encode(value, "UTF-8")
+            "$key=$value"
+        }.join("&")
+
+        return "$server$uri?$query"
+    }
+    private static def filterParameters(parameters) {
+        parameters.findAll { it.value != null && it.value != ""}
     }
 }
 
