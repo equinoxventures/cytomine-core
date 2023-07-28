@@ -60,7 +60,9 @@ class ConfigurationService extends ModelService {
     }
 
     def add(def json) {
-        securityACLService.checkAdmin(cytomineService.currentUser)
+        if(json.key != "SCROLL_ZOOM"){
+            securityACLService.checkAdmin(cytomineService.currentUser)
+        }
         SecUser currentUser = cytomineService.getCurrentUser()
         Command command = new AddCommand(user: currentUser)
         return executeCommand(command,null,json)
@@ -74,6 +76,7 @@ class ConfigurationService extends ModelService {
      */
     def update(Configuration ap, def jsonNewData) {
         securityACLService.checkAdmin(cytomineService.currentUser)
+        log.info(jsonNewData)
         SecUser currentUser = cytomineService.getCurrentUser()
         Command command = new EditCommand(user: currentUser)
         return executeCommand(command,ap,jsonNewData)
@@ -88,7 +91,9 @@ class ConfigurationService extends ModelService {
      * @return Response structure (code, old domain,..)
      */
     def delete(Configuration domain, Transaction transaction = null, Task task = null, boolean printMessage = true) {
-        securityACLService.checkAdmin(cytomineService.currentUser)
+        if(domain.key != "SCROLL_ZOOM"){
+            securityACLService.checkAdmin(cytomineService.currentUser)
+        }
         SecUser currentUser = cytomineService.getCurrentUser()
         Command c = new DeleteCommand(user: currentUser,transaction:transaction)
         return executeCommand(c,domain,null)
