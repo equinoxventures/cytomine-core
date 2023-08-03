@@ -32,7 +32,7 @@ public class ObjectNotFoundException extends CytomineException {
      * @param message Message
      */
     public ObjectNotFoundException(String message) {
-        super(message,404);
+        super(message,204);
         log.warn(message)
     }
 }
