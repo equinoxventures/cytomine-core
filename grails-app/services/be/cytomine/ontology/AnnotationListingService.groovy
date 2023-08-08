@@ -45,11 +45,13 @@ class AnnotationListingService extends ModelService {
                 throw new WrongArgumentException("If you want to use kmeans, you must provide image bbox (=${al.bbox})")
             }
 
-            if (!al.slice) {
+            if (!al.slice && !al.slices) {
                 throw new WrongArgumentException("If you want to use kmeans, you must provide slice Id")
             }
 
-            def rule = kmeansGeometryService.mustBeReduce(al.slice,al.user,al.bbox)
+            def slices = (al.slices) ? al.slices : [al.slice]
+
+            def rule = kmeansGeometryService.mustBeReduce(slices,al.user,al.bbox)
             al.kmeansValue = rule
         } else {
             //no kmeans
@@ -84,6 +86,7 @@ class AnnotationListingService extends ModelService {
 
         def realColumn = []
         def request = al.getAnnotationsRequest()
+        log.debug(request)
 
         boolean termAsked = false
         boolean trackAsked = false
@@ -91,7 +94,7 @@ class AnnotationListingService extends ModelService {
         def excludedColumns = ['annotationTerms', 'annotationTracks', 'userTerm', 'x', 'y']
 
         def sql = new Sql(dataSource)
-        log.info request
+        log.debug request
         sql.eachRow(request) {
 
 

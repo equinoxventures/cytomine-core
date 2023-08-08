@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2009-2019. Authors: see NOTICE file.
+* Copyright (c) 2009-2022. Authors: see NOTICE file.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -48,18 +48,18 @@ class AbstractSliceUrlMappings {
         "/api/abstractslice/$id/window-$x-$y-$w-$h.$format"(controller: "restAbstractSlice"){
             action = [GET:"window", POST:"window"]
         }
-        "/api/abstractslice/$id/window_url-$x-$y-$w-$h.$format"(controller: "restAbstractSlice"){
-            action = [GET:"windowUrl", POST:"windowUrl"]
-        }
-        "/api/abstractslice/$id/camera.$format"(controller: "restAbstractSlice"){
-            action = [POST:"camera"]
-        }
-        "/api/abstractslice/$id/camera-$x-$y-$w-$h.$format"(controller: "restAbstractSlice"){
-            action = [GET:"camera", POST:"camera"]
-        }
-        "/api/abstractslice/$id/camera_url-$x-$y-$w-$h.$format"(controller: "restAbstractSlice"){
-            action = [GET:"cameraUrl", POST:"cameraUrl"]
-        }
+//        "/api/abstractslice/$id/window_url-$x-$y-$w-$h.$format"(controller: "restAbstractSlice"){
+//            action = [GET:"windowUrl", POST:"windowUrl"]
+//        }
+//        "/api/abstractslice/$id/camera.$format"(controller: "restAbstractSlice"){
+//            action = [POST:"camera"]
+//        }
+//        "/api/abstractslice/$id/camera-$x-$y-$w-$h.$format"(controller: "restAbstractSlice"){
+//            action = [GET:"camera", POST:"camera"]
+//        }
+//        "/api/abstractslice/$id/camera_url-$x-$y-$w-$h.$format"(controller: "restAbstractSlice"){
+//            action = [GET:"cameraUrl", POST:"cameraUrl"]
+//        }
     }
 }
 

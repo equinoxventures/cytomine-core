@@ -25,6 +25,7 @@ import be.cytomine.security.ForgotPasswordToken
 import be.cytomine.security.SecRole
 import be.cytomine.security.SecUser
 import be.cytomine.security.User
+import be.cytomine.utils.ImageResponse
 import be.cytomine.utils.JSONUtils
 import be.cytomine.utils.ModelService
 import be.cytomine.utils.Task
@@ -116,7 +117,8 @@ class SharedAnnotationService extends ModelService {
             params.maxSize = 512
             BufferedImage bufferedImage
             try {
-                InputStream is = new ByteArrayInputStream(imageServerService.crop(annotation, params));
+                ImageResponse crop = imageServerService.crop(annotation, params)
+                InputStream is = new ByteArrayInputStream(crop.content);
                 bufferedImage = ImageIO.read(is)
             } catch(Exception e) {
                 bufferedImage = null

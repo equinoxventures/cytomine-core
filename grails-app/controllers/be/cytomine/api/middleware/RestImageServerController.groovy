@@ -1,7 +1,7 @@
 package be.cytomine.api.middleware
 
 /*
-* Copyright (c) 2009-2019. Authors: see NOTICE file.
+* Copyright (c) 2009-2022. Authors: see NOTICE file.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -45,5 +45,21 @@ class RestImageServerController extends RestController {
         } else {
             responseNotFound("ImageServer", params.id)
         }
+    }
+
+    def formats() {
+        ImageServer imageServer = imageServerService.read(params.long('id'))
+        if (imageServer) {
+            responseSuccess(imageServerService.formats(imageServer))
+        } else {
+            responseNotFound("ImageServer", params.id)
+        }
+    }
+
+    def allFormats() {
+        def imageServers = imageServerService.list()
+        def data = []
+        imageServers.each { data += imageServerService.formats(it) }
+        responseSuccess(data.flatten())
     }
 }

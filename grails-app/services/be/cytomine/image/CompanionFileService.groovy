@@ -35,7 +35,7 @@ class CompanionFileService extends ModelService {
     def list(AbstractImage image) {
         if (!abstractImageService.hasRightToReadAbstractImageWithProject(image)) //TODO: improve
             securityACLService.checkAtLeastOne(image, READ)
-        CompanionFile.findAllByImage(image)
+        CompanionFile.findAllByImage(image, [cache: false])
     }
 
     def list(UploadedFile uploadedFile) {

@@ -28,7 +28,7 @@ import be.cytomine.security.SecUser
 import be.cytomine.security.User
 import be.cytomine.security.UserJob
 import be.cytomine.utils.ModelService
-import be.cytomine.utils.SQLUtils
+import be.cytomine.utils.StringUtils
 import be.cytomine.utils.Task
 import grails.converters.JSON
 import groovy.sql.Sql
@@ -75,7 +75,7 @@ class UploadedFileService extends ModelService {
 
     }
 
-    def listWithDetails(User user, def searchParameters = [], def sortedProperty = "created", def sortDirection = "desc") {
+    def listWithDetails(User user, def searchParameters = [], def sortedProperty = "created", def sortDirection = "desc", Boolean withTreeDetails = false) {
         securityACLService.checkIsSameUser(user, cytomineService.currentUser)
 
         def validatedSearchParameters = getDomainAssociatedSearchParameters(UploadedFile, searchParameters)
@@ -88,14 +88,27 @@ class UploadedFileService extends ModelService {
 
         String sort = ""
         if (["content_type", "id", "created", "filename", "originalFilename", "size", "status"].contains(sortedProperty)) {
-            sort = "uf.${SQLUtils.toSnakeCase(sortedProperty)}"
-        } else if(sortedProperty == "globalSize") {
+            sort = "uf.${StringUtils.toSnakeCase(sortedProperty)}"
+        } else if(withTreeDetails && sortedProperty == "globalSize") {
             sort = "COALESCE(SUM(DISTINCT tree.size),0)+uf.size"
         } else {
             sort = "uf.created "
         }
         sort = " ORDER BY $sort "
         sort += (sortDirection.equals("desc")) ? " DESC " : " ASC "
+
+        String treeSelect = ""
+        String treeJoin = ""
+        if (withTreeDetails) {
+            treeSelect += "COUNT(DISTINCT tree.id) AS nb_children, "
+            treeSelect += "COALESCE(SUM(DISTINCT tree.size),0)+uf.size AS global_size, "
+
+            treeJoin = "LEFT JOIN (SELECT *  FROM uploaded_file t " +
+                    "WHERE EXISTS (SELECT 1 FROM acl_sid AS asi LEFT JOIN acl_entry AS ae ON asi.id = ae.sid " +
+                    "LEFT JOIN acl_object_identity AS aoi ON ae.acl_object_identity = aoi.id " +
+                    "WHERE aoi.object_id_identity = t.storage_id AND asi.sid = :username) AND t.deleted IS NULL) " +
+                    "AS tree ON (uf.l_tree @> tree.l_tree AND tree.id != uf.id) "
+        }
 
         String request = "SELECT uf.id, " +
                 "uf.content_type, " +
@@ -105,24 +118,19 @@ class UploadedFileService extends ModelService {
                 "uf.size, " +
                 "uf.status, " +
                 "CASE WHEN (nlevel(uf.l_tree) > 0) THEN ltree2text(subltree(uf.l_tree, 0, 1)) ELSE NULL END AS root, " +
-                "COUNT(DISTINCT tree.id) AS nb_children, " +
-                "COALESCE(SUM(DISTINCT tree.size),0)+uf.size AS global_size, " +
+                treeSelect +
                 "CASE WHEN (uf.status = ${UploadedFile.Status.CONVERTED.code} OR uf.status = ${UploadedFile.Status.DEPLOYED.code}) " +
                 "THEN ai.id ELSE NULL END AS image " +
                 "FROM uploaded_file uf " +
-                "LEFT JOIN (SELECT *  FROM uploaded_file t " +
-                "WHERE EXISTS (SELECT 1 FROM acl_sid AS asi LEFT JOIN acl_entry AS ae ON asi.id = ae.sid " +
-                "LEFT JOIN acl_object_identity AS aoi ON ae.acl_object_identity = aoi.id " +
-                "WHERE aoi.object_id_identity = t.storage_id AND asi.sid = :username) AND t.deleted IS NULL) " +
-                "AS tree ON (uf.l_tree @> tree.l_tree AND tree.id != uf.id) " +
+                treeJoin +
                 "LEFT JOIN abstract_image AS ai ON ai.uploaded_file_id = uf.id " +
                 "LEFT JOIN uploaded_file AS parent ON parent.id = uf.parent_id " +
                 "WHERE EXISTS (SELECT 1 FROM acl_sid AS asi " +
                     "LEFT JOIN acl_entry AS ae ON asi.id = ae.sid " +
                     "LEFT JOIN acl_object_identity AS aoi ON ae.acl_object_identity = aoi.id " +
                     "WHERE aoi.object_id_identity = uf.storage_id AND asi.sid = :username) " +
-                "AND (uf.parent_id IS NULL OR parent.content_type similar to '%zip%') " +
-                "AND uf.content_type NOT similar to '%zip%' " +
+                "AND (uf.parent_id IS NULL OR parent.content_type IN ('" + UploadedFile.archiveFormats().join("','") + "')) " +
+                "AND uf.content_type NOT IN ('" + UploadedFile.archiveFormats().join("','") + "') " +
                 "AND uf.deleted IS NULL " +
                 "AND " +
                 (search==null || search.isEmpty() ? "true" : search) +
@@ -132,13 +140,14 @@ class UploadedFileService extends ModelService {
         def data = []
         def sql = new Sql(dataSource)
         def mapParams = sqlSearchConditions.sqlParameters
-        println request
+        log.debug request
         if (mapParams instanceof List && mapParams.isEmpty()) {
             mapParams = [:] // if sqlSearchConditions.sqlParameters is empty, it return a list, otherwise a map (a bit tricky...).
         }
         mapParams.put("username", user.username)
         sql.eachRow(request, mapParams) { resultSet ->
-            def row = SQLUtils.keysToCamelCase(resultSet.toRowResult())
+            def row = StringUtils.keysToCamelCase(resultSet.toRowResult())
+            row.isArchive = UploadedFile.archiveFormats().contains(row.contentType)
             row.thumbURL = (row.image) ? UrlApi.getAbstractImageThumbUrl(row.image as Long) : null
             data << row
         }
@@ -173,15 +182,16 @@ class UploadedFileService extends ModelService {
         def data = []
         def sql = new Sql(dataSource)
         sql.eachRow(request, [username: user.username]) { resultSet ->
-            def row = SQLUtils.keysToCamelCase(resultSet.toRowResult())
+            def row = StringUtils.keysToCamelCase(resultSet.toRowResult())
             row.lTree = row.lTree.value
             row.image = row.image.array.find { it != null }
             row.slices = row.slices.array.findAll { it != null } // A same UF can be linked to several slices (virtual stacks)
             row.companionFile = row.companionFile.array.find { it != null }
+            row.isArchive = UploadedFile.archiveFormats().contains(row.contentType)
             row.thumbURL =  null
             if(row.image) {
                 row.thumbURL = UrlApi.getAbstractImageThumbUrl(row.image as Long)
-                row.macroURL = UrlApi.getAssociatedImage(row.image as Long, "macro", row.contentType as String, 256)
+                row.macroURL = UrlApi.getAssociatedImage(row.image as Long, "abstractimage", "macro", row.contentType as String, 256)
             } else if (row.slices.size() > 0) {
                 row.thumbURL = UrlApi.getAbstractSliceThumbUrl(row.slices[0] as Long)
             }

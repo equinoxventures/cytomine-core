@@ -9,7 +9,7 @@ import org.restapidoc.annotation.RestApiObjectField
 
 
 /*
-* Copyright (c) 2009-2019. Authors: see NOTICE file.
+* Copyright (c) 2009-2022. Authors: see NOTICE file.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ class SliceInstance extends CytomineDomain implements Serializable {
     void checkAlreadyExist() {
         withNewSession {
             SliceInstance slice = SliceInstance.findByImageAndBaseSlice(image, baseSlice)
-            if (slice!=null && (slice?.id != id))
+            if (slice != null && (slice?.id != id))
                 throw new AlreadyExistException("SliceInstance (C:${baseSlice?.channel}, Z:${baseSlice?.zStack}, T:${baseSlice?.time}) already exists for ImageInstance ${image?.id}")
         }
     }
@@ -82,16 +82,18 @@ class SliceInstance extends CytomineDomain implements Serializable {
         returnArray['zStack'] = domain?.baseSlice?.zStack
         returnArray['time'] = domain?.baseSlice?.time
         returnArray['rank'] = domain?.baseSlice?.rank
+        returnArray['channelName'] = domain?.baseSlice?.channelName
+        returnArray['channelColor'] = domain?.baseSlice?.channelColor
 
         returnArray
     }
 
     def getPath() {
-        return baseSlice?.uploadedFile?.path
+        return baseSlice?.path
     }
 
     def getImageServerUrl() {
-        return baseSlice?.uploadedFile?.imageServer?.url
+        return baseSlice?.imageServerUrl
     }
 
     def getMimeType(){

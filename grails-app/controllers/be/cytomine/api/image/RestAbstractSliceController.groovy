@@ -1,7 +1,7 @@
 package be.cytomine.api.image
 
 /*
-* Copyright (c) 2009-2019. Authors: see NOTICE file.
+* Copyright (c) 2009-2022. Authors: see NOTICE file.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -157,8 +157,8 @@ class RestAbstractSliceController extends RestController {
             parameters.contrast = params.double('contrast')
             parameters.gamma = params.double('gamma')
             parameters.bits = (params.bits == "max") ? "max" : params.int('bits')
-            parameters.refresh = params.boolean('refresh', false)
-            responseByteArray(imageServerService.thumb(abstractSlice, parameters))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.thumb(abstractSlice, parameters, etag))
         } else {
             responseNotFound("AbstractSlice", params.id)
         }
@@ -167,51 +167,53 @@ class RestAbstractSliceController extends RestController {
     def crop() {
         AbstractSlice abstractSlice = abstractSliceService.read(params.long("id"))
         if (abstractSlice) {
-            responseByteArray(imageServerService.crop(abstractSlice, params))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.crop(abstractSlice, params, false, false, etag))
         } else {
             responseNotFound("AbstractSlice", params.id)
         }
     }
 
-    def windowUrl() {
-        AbstractSlice abstractSlice = abstractSliceService.read(params.long("id"))
-        if (abstractSlice) {
-            String url = imageServerService.window(abstractSlice, params, true)
-            responseSuccess([url : url])
-        } else {
-            responseNotFound("AbstractSlice", params.id)
-        }
-    }
+//    def windowUrl() {
+//        AbstractSlice abstractSlice = abstractSliceService.read(params.long("id"))
+//        if (abstractSlice) {
+//            String url = imageServerService.window(abstractSlice, params, true)
+//            responseSuccess([url : url])
+//        } else {
+//            responseNotFound("AbstractSlice", params.id)
+//        }
+//    }
 
     def window() {
         AbstractSlice abstractSlice = abstractSliceService.read(params.long("id"))
         if (abstractSlice) {
-            responseByteArray(imageServerService.window(abstractSlice, params, false))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.window(abstractSlice, params, false, etag))
         } else {
             responseNotFound("AbstractSlice", params.id)
         }
     }
 
-    def cameraUrl() {
-        AbstractSlice abstractSlice = abstractSliceService.read(params.long("id"))
-        if (abstractSlice) {
-            params.withExterior = false
-            String url = imageServerService.window(abstractSlice, params, true)
-            responseSuccess([url : url])
-        } else {
-            responseNotFound("AbstractSlice", params.id)
-        }
-    }
-
-    def camera() {
-        AbstractSlice abstractSlice = abstractSliceService.read(params.long("id"))
-        if (abstractSlice) {
-            params.withExterior = false
-            responseByteArray(imageServerService.window(abstractSlice, params, false))
-        } else {
-            responseNotFound("AbstractSlice", params.id)
-        }
-    }
+//    def cameraUrl() {
+//        AbstractSlice abstractSlice = abstractSliceService.read(params.long("id"))
+//        if (abstractSlice) {
+//            params.withExterior = false
+//            String url = imageServerService.window(abstractSlice, params, true)
+//            responseSuccess([url : url])
+//        } else {
+//            responseNotFound("AbstractSlice", params.id)
+//        }
+//    }
+//
+//    def camera() {
+//        AbstractSlice abstractSlice = abstractSliceService.read(params.long("id"))
+//        if (abstractSlice) {
+//            params.withExterior = false
+//            responseImage(imageServerService.window(abstractSlice, params, false))
+//        } else {
+//            responseNotFound("AbstractSlice", params.id)
+//        }
+//    }
 
 //    def download() {
 //        AbstractSlice abstractSlice = abstractSliceService.read(params.long("id"))

@@ -16,7 +16,7 @@ import grails.converters.JSON
 import static org.springframework.security.acls.domain.BasePermission.READ
 
 /*
-* Copyright (c) 2009-2019. Authors: see NOTICE file.
+* Copyright (c) 2009-2022. Authors: see NOTICE file.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.

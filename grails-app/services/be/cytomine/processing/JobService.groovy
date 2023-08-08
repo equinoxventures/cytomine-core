@@ -56,8 +56,6 @@ class JobService extends ModelService {
     def currentRoleServiceProxy
     def securityACLService
 
-   // static final String[] IGNORES_JOB_PARAMETER = cytomine_host, cytomine_public_key, cytomine_private_key, cytomine_id_software, cytomine_id_project
-
     def currentDomain() {
         return Job
     }
@@ -197,6 +195,7 @@ class JobService extends ModelService {
                 mapParams["j_favorite_2"] = (mapParams["j_favorite_2"] == 'true');
             }
         }
+
         // https://stackoverflow.com/a/42080302
         if (mapParams.isEmpty() && usernameParams.isEmpty()) {
             mapParams = []
@@ -211,7 +210,7 @@ class JobService extends ModelService {
         sql.eachRow(request, mapParams) {
             def map = [:]
 
-            for(int i =1; i<=((GroovyResultSet) it).getMetaData().getColumnCount(); i++){
+            for (int i = 1; i <= ((GroovyResultSet) it).getMetaData().getColumnCount(); i++) {
                 String key = ((GroovyResultSet) it).getMetaData().getColumnName(i)
                 String objectKey = key.replaceAll("(_)([A-Za-z0-9])", { Object[] test -> test[2].toUpperCase() })
 
@@ -221,7 +220,7 @@ class JobService extends ModelService {
 
             // I mock methods and fields to pass through getDataFromDomain of Project
             map["class"] = Job.class
-            map['project'] = [id : map['projectId']]
+            map['project'] = [id: map['projectId']]
             map['software'] = [
                     id             : map['softwareId'],
                     name           : map['softwareName'],
@@ -235,8 +234,8 @@ class JobService extends ModelService {
             ]
             map['processingServer'] = [id: map['processingServerId']]
 
-
             def line = Job.getDataFromDomain(map)
+
             if (extended.withUser) {
                 line.putAt('username', map.username)
                 line.putAt('userJob', map.userJobId)
@@ -294,7 +293,7 @@ class JobService extends ModelService {
             def params = json.params;
             if (params) {
                 params.each { param ->
-                    log.info "add param = " + param
+                    log.info "Job $job - Add parameter: " + param
                     jobParameterService.addJobParameter(job,param.softwareParameter,param.value, currentUser, transaction)
                 }
             }
@@ -338,10 +337,10 @@ class JobService extends ModelService {
      * @return  Response structure (new domain data, old domain data..)
      */
     def update(Job job, def jsonNewData) {
-        log.info "update"
+        log.debug "update"
         securityACLService.check(job.container(),READ)
         securityACLService.checkisNotReadOnly(job.container())
-        log.info "securityACLService.check"
+        log.debug "securityACLService.check"
         SecUser currentUser = cytomineService.getCurrentUser()
         return executeCommand(new EditCommand(user: currentUser),job, jsonNewData)
     }
@@ -370,16 +369,18 @@ class JobService extends ModelService {
     def getLog(Job job) {
         def log = AttachedFile.findByDomainClassNameAndDomainIdentAndFilename("be.cytomine.processing.Job", job.id, "log.out")
 
-        if (!log) {
+        if (!log || !log.getFile().exists()) {
             return null
         }
         def ret = AttachedFile.getDataFromDomain(log)
-        ret['data'] = new String(log.data);
+        ret['data'] = new String(log.getFile().bytes);
         return ret
     }
 
     def markAsFavorite(Job job, boolean favorite) {
-        new Sql(dataSource).executeUpdate("UPDATE job SET favorite = ${favorite} WHERE id = ${job.id}");
+        def sql = new Sql(dataSource)
+        sql.executeUpdate("UPDATE job SET favorite = ${favorite} WHERE id = ${job.id}");
+        sql.close()
         job.favorite = favorite
         return job
     }

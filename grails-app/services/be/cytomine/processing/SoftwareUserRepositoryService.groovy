@@ -1,7 +1,7 @@
 package be.cytomine.processing
 
 /*
- * Copyright (c) 2009-2018. Authors: see NOTICE file.
+ * Copyright (c) 2009-2022. Authors: see NOTICE file.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -105,35 +105,27 @@ class SoftwareUserRepositoryService extends ModelService {
         return [domain.username, domain.dockerUsername, domain.prefix]
     }
 
-    @Override
-    def afterAdd(Object domain, Object response) {
-        SoftwareUserRepository softwareUserRepository = domain as SoftwareUserRepository
-
-        def message = [requestType: "addSoftwareUserRepository",
-                       id: softwareUserRepository.id,
-                       provider: softwareUserRepository.provider,
-                       username: softwareUserRepository.username,
-                       dockerUsername: softwareUserRepository.dockerUsername,
-                       prefix: softwareUserRepository.prefix]
+    def sendRefreshSoftwareUserRepositoryList() {
+        def message = [requestType: "refreshSoftwareUserRepositoryList"]
 
         JsonBuilder jsonBuilder = new JsonBuilder()
         jsonBuilder(message)
-
         amqpQueueService.publishMessage(AmqpQueue.findByName("queueCommunication"), jsonBuilder.toString())
     }
 
     @Override
+    def afterAdd(Object domain, Object response) {
+        sendRefreshSoftwareUserRepositoryList()
+    }
+
+    @Override
     def afterDelete(Object domain, Object response) {
-        SoftwareUserRepository softwareUserRepository = domain as SoftwareUserRepository
-        def message = [requestType: "removeSoftwareUserRepository",
-                       id: softwareUserRepository.id,
-                       provider: softwareUserRepository.provider,
-                       username: softwareUserRepository.username,
-                       dockerUsername: softwareUserRepository.dockerUsername,
-                       prefix: softwareUserRepository.prefix]
-        JsonBuilder jsonBuilder = new JsonBuilder()
-        jsonBuilder(message)
-        amqpQueueService.publishMessage(AmqpQueue.findByName("queueCommunication"), jsonBuilder.toString())
+        sendRefreshSoftwareUserRepositoryList()
+    }
+
+    @Override
+    def afterUpdate(Object domain, Object response) {
+        sendRefreshSoftwareUserRepositoryList()
     }
 
     def refresh(def repo) {

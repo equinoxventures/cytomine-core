@@ -159,7 +159,6 @@ class BootStrap {
 
         /* Fill data just in test environment*/
         log.info "fill with data..."
-        log.info grailsApplication.config.grails.adminPassword
         if (Environment.getCurrent() == Environment.TEST) {
             bootstrapDataService.initData()
             noSQLCollectionService.cleanActivityDB()

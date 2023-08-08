@@ -79,6 +79,9 @@ class RestReviewedAnnotationController extends RestController {
 
     @RestApiMethod(description="Count the number of reviewed annotation for the current user")
     @RestApiResponseObject(objectIdentifier = "[total:x]")
+    @RestApiParams(params=[
+            @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH,description = "The user id")
+    ])
     def countByUser() {
         responseSuccess([total:reviewedAnnotationService.count(cytomineService.currentUser)])
     }
@@ -135,6 +138,9 @@ class RestReviewedAnnotationController extends RestController {
      * Its better to use 'addAnnotationReview' that needs only the annotation id and a list of term
      */
     @RestApiMethod(description="Add reviewed annotation. Only use to create a reviewed annotation with all json data. Use /annotation/x/review")
+    @RestApiParams(params=[
+            @RestApiParam(name="iduser", type="long", paramType = RestApiParamType.PATH, description = "The user id")
+    ])
     def add () {
         add(reviewedAnnotationService, request.JSON)
     }
@@ -561,7 +567,8 @@ class RestReviewedAnnotationController extends RestController {
     def crop() {
         ReviewedAnnotation annotation = ReviewedAnnotation.read(params.long("id"))
         if (annotation) {
-            responseByteArray(imageServerService.crop(annotation, params))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.crop(annotation, params, false, false, etag))
         } else {
             responseNotFound("ReviewedAnnotation", params.id)
         }
@@ -585,7 +592,8 @@ class RestReviewedAnnotationController extends RestController {
         ReviewedAnnotation annotation = ReviewedAnnotation.read(params.long("id"))
         if (annotation) {
             params.mask = true
-            responseByteArray(imageServerService.crop(annotation, params))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.crop(annotation, params, false, false, etag))
         } else {
             responseNotFound("ReviewedAnnotation", params.id)
         }
@@ -609,7 +617,8 @@ class RestReviewedAnnotationController extends RestController {
         ReviewedAnnotation annotation = ReviewedAnnotation.read(params.long("id"))
         if (annotation) {
             params.alphaMask = true
-            responseByteArray(imageServerService.crop(annotation, params))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.crop(annotation, params, false, false, etag))
         } else {
             responseNotFound("ReviewedAnnotation", params.id)
         }

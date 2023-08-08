@@ -1558,10 +1558,9 @@ class ProjectSecurityTests extends SecurityTestsAbstract {
 
         /*admin data*/
         //Create an annotation (by admin)
-        ImageInstance imageAdmin = BasicInstanceBuilder.getImageInstanceNotExist(project,false)
+        ImageInstance imageAdmin = BasicInstanceBuilder.getImageInstanceNotExist(project,true)
         imageAdmin.user = admin;
         BasicInstanceBuilder.saveDomain(imageAdmin)
-        slice = BasicInstanceBuilder.getSliceInstanceNotExist(imageAdmin,true)
         UserAnnotation annotationAdmin = BasicInstanceBuilder.getUserAnnotationNotExist(project,imageAdmin,admin,false)
         annotationAdmin.user = admin;
         BasicInstanceBuilder.saveDomain(annotationAdmin)
@@ -1583,10 +1582,9 @@ class ProjectSecurityTests extends SecurityTestsAbstract {
 
         /*simple user data*/
         //Create an annotation (by user)
-        ImageInstance imageUser = BasicInstanceBuilder.getImageInstanceNotExist(project,false)
+        ImageInstance imageUser = BasicInstanceBuilder.getImageInstanceNotExist(project,true)
         imageUser.user = simpleUser;
         BasicInstanceBuilder.saveDomain(imageUser)
-        slice = BasicInstanceBuilder.getSliceInstanceNotExist(imageUser,true)
         UserAnnotation annotationUser = BasicInstanceBuilder.getUserAnnotationNotExist(project,imageUser,simpleUser,false)
         annotationUser.user = simpleUser;
         BasicInstanceBuilder.saveDomain(annotationUser)

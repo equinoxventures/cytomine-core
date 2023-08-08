@@ -77,7 +77,7 @@ class DescriptionService extends ModelService {
             json.domainClassName = annotation.getClass().name
             securityACLService.check(json.domainIdent,annotation.getClass().name,READ)
             securityACLService.checkFullOrRestrictedForOwner(json.domainIdent,annotation.getClass().name, "user")
-        } else if (!json.domainClassName.contains("AbstractImage")){
+        } else {
             securityACLService.check(json.domainIdent,json.domainClassName,READ)
             securityACLService.checkFullOrRestrictedForOwner(json.domainIdent,json.domainClassName, "user")
         }

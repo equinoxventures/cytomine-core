@@ -138,8 +138,8 @@ class Software extends CytomineDomain {
     static Software insertDataIntoDomain(def json, def domain = new Software()) {
         domain.id = JSONUtils.getJSONAttrLong(json,'id',null)
         domain.name = JSONUtils.getJSONAttrStr(json, 'name')
-        domain.softwareUserRepository = JSONUtils.getJSONAttrDomain(json, "softwareUserRepository", new
-                SoftwareUserRepository(), false)
+        domain.softwareUserRepository = JSONUtils.getJSONAttrDomain(json, "softwareUserRepository",
+                new SoftwareUserRepository(), false)
         domain.defaultProcessingServer = JSONUtils.getJSONAttrDomain(json, "defaultProcessingServer", new ProcessingServer(), false)
         domain.resultName = JSONUtils.getJSONAttrStr(json, 'resultName')
         domain.executeCommand = JSONUtils.getJSONAttrStr(json, 'executeCommand')

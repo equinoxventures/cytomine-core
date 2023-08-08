@@ -120,13 +120,13 @@ class ImageGroupHDF5Service  extends  ModelService{
         }
 
         imagesSequenceList.each {
-            maxBits = Math.max(maxBits, it.image.baseImage.bitDepth ?: 8)
+            maxBits = Math.max(maxBits, it.image.baseImage.bitPerSample ?: 8)
         }
 
         def body = [user: currentUser.id, files: imagesFilenames, dest: destination, id: id,
                     cytomine:UrlApi.serverUrl(), bpc:maxBits]
 
-        log.info body
+        log.debug body
 
         String imageServerURL = grailsApplication.config.grails.imageServerURL[0]
         String url = "/multidim/convert.json"

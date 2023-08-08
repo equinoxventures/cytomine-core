@@ -27,7 +27,6 @@ import be.cytomine.ontology.Term
 import be.cytomine.ontology.UserAnnotation
 import be.cytomine.processing.RoiAnnotation
 import be.cytomine.project.Project
-import be.cytomine.utils.GeometryUtils
 import be.cytomine.utils.GisUtils
 import com.vividsolutions.jts.geom.Geometry
 import com.vividsolutions.jts.io.WKTReader
@@ -218,91 +217,6 @@ abstract class AnnotationDomain extends CytomineDomain implements Serializable {
         def centroid = location.getCentroid()
         return [x: centroid.x, y: centroid.y]
     }
-/*
-    def toCropURL(params=[:]) {
-        def boundaries = retrieveCropParams(params)
-        return UrlApi.getCropURL(image.baseImage.id, boundaries, boundaries.format)
-    }
-
-    def toCropParams(params=[:]) {
-        def boundaries = retrieveCropParams(params)
-        def parameters = boundaries
-        parameters.id = image.baseImage.id
-        parameters.format = params.format
-        return parameters
-    }
-
-    def urlImageServerCrop(def abstractImageService) {
-        def params = toCropParams()
-        URL url = new URL(toCropURL())
-        String urlCrop = abstractImageService.crop(params, url.query)
-        return urlCrop
-    }
-
-    public LinkedHashMap<String, Integer> retrieveCropParams(params) {
-// In the window service, boundaries are already set and do not correspond to geometry/location boundaries
-        def geometry = location
-
-        def boundaries = params.boundaries
-        if (!boundaries && geometry) {
-            boundaries = GeometryUtils.getGeometryBoundaries(geometry)
-        }
-
-        boundaries.imageWidth = image.baseImage.getWidth()
-        boundaries.imageHeight = image.baseImage.getHeight()
-
-
-        if (params.format) boundaries.format = params.format
-        else boundaries.format = "png"
-
-        if (params.format) boundaries.format = params.format
-        else boundaries.format = "png"
-
-        if (params.zoom) boundaries.zoom = params.zoom
-        if (params.maxSize) boundaries.maxSize = params.maxSize
-        if (params.draw) {
-            boundaries.draw = true
-            boundaries.location = location.toText()
-            if(params.color) boundaries.color = params.color
-            if(params.thickness) boundaries.thickness = params.thickness
-        }
-        if (params.get('increaseArea')) {
-            boundaries.increaseArea = params.get('increaseArea')
-        }
-        if(params.square) {
-            boundaries.square = params.square
-        }
-
-        if (params.mask) {
-            boundaries.mask = true
-            boundaries.location = location.toText()
-        }
-        if (params.alphaMask) {
-            boundaries.alphaMask = true
-            boundaries.location = location.toText()
-            boundaries.format = "png"
-        }
-
-        if(location instanceof com.vividsolutions.jts.geom.Point && !params.point.equals("false")) {
-            boundaries.point = true
-        }
-
-        boolean complete = Boolean.parseBoolean(params.complete)
-        if (complete && geometry)
-            boundaries.location = simplifyGeometryService.reduceGeometryPrecision(location)
-        else if (geometry)
-            boundaries.location = simplifyGeometryService.simplifyPolygonForCrop(location)
-
-        boundaries.location = boundaries.location.toText()
-
-        if (params.colormap) boundaries.colormap = params.colormap
-        if (params.inverse) boundaries.inverse = params.inverse
-        if (params.bits) boundaries.bits = params.bits
-        if (params.contrast) boundaries.contrast = params.contrast
-        if (params.gamma) boundaries.gamma = params.gamma
-
-        boundaries
-    }*/
 
     def getCallBack() {
         return [annotationID: this.id, imageID: this.image.id]

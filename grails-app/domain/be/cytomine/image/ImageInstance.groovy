@@ -92,6 +92,7 @@ class ImageInstance extends CytomineDomain implements Serializable {
             @RestApiObjectField(apiFieldName = "path", description = "The internal path of the file", allowedType = "string", useForCreation = false),
             @RestApiObjectField(apiFieldName = "contentType", description = "The image content type", allowedType = "string", useForCreation = false),
             @RestApiObjectField(apiFieldName = "zoom", description = "The number of zooms available in the image", allowedType = "int", useForCreation = false),
+            @RestApiObjectField(apiFieldName = "tileSize", description = "The size of the tiles in the image", allowedType = "int", useForCreation = false),
             @RestApiObjectField(apiFieldName = "macroURL", description = "URL to get image macros", allowedType = "string", useForCreation = false),
             @RestApiObjectField(apiFieldName = "sample", description = "The source of the image (human, animal,...)", allowedType = "long", mandatory = false),
             @RestApiObjectField(apiFieldName = "width", description = "The N-dimensional image width, in pixels (X)", allowedType = "int", useForCreation = false, mandatory = false, defaultValue = "-1"),
@@ -100,7 +101,7 @@ class ImageInstance extends CytomineDomain implements Serializable {
             @RestApiObjectField(apiFieldName = "duration", description = "The N-dimensional image duration, in frames (T)", allowedType = "int", useForCreation = false, mandatory = false, defaultValue = "1"),
             @RestApiObjectField(apiFieldName = "channels", description = "The N-dimensional image channels (C)", allowedType = "int", useForCreation = false, mandatory = false, defaultValue = "1"),
             @RestApiObjectField(apiFieldName = "bitPerSample", description = "The number of bits per sample (color)", allowedType = "int", useForCreation = false, mandatory = false),
-            @RestApiObjectField(apiFieldName = "samplePerPixel", description = "The number of samples (colors) per pixel", allowedType = "int", useForCreation = false, mandatory = false),
+            @RestApiObjectField(apiFieldName = "samplePerPixel", description = "The number of samples per pixel", allowedType = "int", useForCreation = false, mandatory = false),
             @RestApiObjectField(apiFieldName = "colorspace", description = "The image colorspace", allowedType = "string", useForCreation = false, mandatory = false),
             @RestApiObjectField(apiFieldName = "preview", description = "URL to get image preview", allowedType = "string", useForCreation = false),
     ])
@@ -188,7 +189,7 @@ class ImageInstance extends CytomineDomain implements Serializable {
      * @param domain Domain source for json value
      * @return Map with fields (keys) and their values
      */
-    static def getDataFromDomain(def image) {
+    static def getDataFromDomain(ImageInstance image) {
 
         def returnArray = CytomineDomain.getDataFromDomain(image)
         returnArray['baseImage'] = image?.baseImage?.id
@@ -208,6 +209,7 @@ class ImageInstance extends CytomineDomain implements Serializable {
         returnArray['depth'] = image?.baseImage?.depth // /!!\ Breaking API : image?.baseImage?.getZoomLevels()?.max
         returnArray['duration'] = image?.baseImage?.duration
         returnArray['channels'] = image?.baseImage?.channels
+        returnArray['apparentChannels'] = image?.baseImage?.apparentChannels
 
         returnArray['physicalSizeX'] = image?.physicalSizeX
         returnArray['physicalSizeY'] = image?.physicalSizeY
@@ -215,8 +217,12 @@ class ImageInstance extends CytomineDomain implements Serializable {
         returnArray['fps'] = image?.fps
 
         returnArray['zoom'] = image?.baseImage?.getZoomLevels()
+        returnArray['tileSize'] = image?.baseImage?.tileSize
+        returnArray['isVirtual'] = image?.baseImage?.isVirtual()
+
         returnArray['magnification'] = image?.magnification
-        returnArray['bitDepth'] = image?.baseImage?.bitDepth
+        returnArray['bitPerSample'] = image?.baseImage?.bitPerSample
+        returnArray['samplePerPixel'] = image?.baseImage?.samplePerPixel
         returnArray['colorspace'] = image?.baseImage?.colorspace
 
         returnArray['reviewStart'] =  image?.reviewStart?.time?.toString()
@@ -231,7 +237,7 @@ class ImageInstance extends CytomineDomain implements Serializable {
 
         returnArray['thumb'] = UrlApi.getImageInstanceThumbUrlWithMaxSize(image?.id, 512)
         returnArray['preview'] = UrlApi.getImageInstanceThumbUrlWithMaxSize(image?.id, 1024)
-        returnArray['macroURL'] = UrlApi.getAssociatedImageInstance(image?.id, "macro", image?.baseImage?.uploadedFile?.contentType, 512)
+        returnArray['macroURL'] = UrlApi.getAssociatedImage(image, "macro", image?.baseImage?.uploadedFile?.contentType, 256)
         return returnArray
     }
 

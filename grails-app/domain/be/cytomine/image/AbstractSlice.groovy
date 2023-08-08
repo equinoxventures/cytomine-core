@@ -8,7 +8,7 @@ import org.restapidoc.annotation.RestApiObjectField
 import org.restapidoc.annotation.RestApiObjectFields
 
 /*
-* Copyright (c) 2009-2019. Authors: see NOTICE file.
+* Copyright (c) 2009-2022. Authors: see NOTICE file.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ class AbstractSlice extends CytomineDomain implements Serializable {
     UploadedFile uploadedFile
 
     @RestApiObjectField(description = "The Cytomine internal slice mime type.")
-    Mime mime
+    Mime mime // [PIMS] Deprecated.
 
     @RestApiObjectField(description = "The channel this plane is for. No unit. This is numbered from 0.")
     Integer channel
@@ -43,6 +43,10 @@ class AbstractSlice extends CytomineDomain implements Serializable {
 
     @RestApiObjectField(description = "The timepoint this plane is for. No unit. This is numbered from 0.")
     Integer time
+
+    String channelName
+
+    String channelColor
 
     @RestApiObjectFields(params = [
             @RestApiObjectField(apiFieldName = "rank", description = "The rank of the slice computed as ['channel' + 'image.channels' * ('zStack' + 'image.depth' * 'time')]", allowedType = "int", useForCreation = false),
@@ -62,6 +66,9 @@ class AbstractSlice extends CytomineDomain implements Serializable {
     }
 
     static constraints = {
+        channelName nullable: true, blank: true
+        channelColor nullable: true, blank: true
+        mime nullable: true
     }
 
     void checkAlreadyExist() {
@@ -80,11 +87,13 @@ class AbstractSlice extends CytomineDomain implements Serializable {
 
         domain.uploadedFile = JSONUtils.getJSONAttrDomain(json, "uploadedFile", new UploadedFile(), true)
         domain.image = JSONUtils.getJSONAttrDomain(json, "image", new AbstractImage(), true)
-        domain.mime = JSONUtils.getJSONAttrDomain(json,"mime",new Mime(),'mimeType','String',true)
+        domain.mime = JSONUtils.getJSONAttrDomain(json,"mime",new Mime(),'mimeType','String',false)
 
         domain.channel = JSONUtils.getJSONAttrInteger(json, "channel", 0)
         domain.zStack = JSONUtils.getJSONAttrInteger(json, "zStack", 0)
         domain.time = JSONUtils.getJSONAttrInteger(json, "time", 0)
+        domain.channelName = JSONUtils.getJSONAttrStr(json, "channelName", false)
+        domain.channelColor = JSONUtils.getJSONAttrStr(json, "channelColor", false)
 
         domain
     }
@@ -92,6 +101,7 @@ class AbstractSlice extends CytomineDomain implements Serializable {
     static def getDataFromDomain(def domain) {
         def returnArray = CytomineDomain.getDataFromDomain(domain)
         returnArray['uploadedFile'] = domain?.uploadedFile?.id
+        returnArray['imageServerUrl'] = domain?.imageServerUrl
         returnArray['path'] = domain?.path
         returnArray['image'] = domain?.image?.id
         returnArray['mime'] = domain?.mime?.mimeType
@@ -99,22 +109,31 @@ class AbstractSlice extends CytomineDomain implements Serializable {
         returnArray['channel'] = domain?.channel
         returnArray['zStack'] = domain?.zStack
         returnArray['time'] = domain?.time
+        returnArray['channelName'] = domain?.channelName
+        returnArray['channelColor'] = domain?.channelColor
 
         returnArray['rank'] = domain?.rank
 
         returnArray
     }
 
+    def getReferenceUploadedFile() {
+        if (image?.isVirtual()) {
+            return image?.uploadedFile
+        }
+        return uploadedFile
+    }
+
     def getPath() {
-        return uploadedFile?.path
+        return referenceUploadedFile?.path
     }
 
     def getImageServerUrl() {
-        return uploadedFile?.imageServer?.url
+        return referenceUploadedFile?.imageServer?.url
     }
 
     def getImageServerInternalUrl() {
-        return uploadedFile?.imageServer?.internalUrl
+        return referenceUploadedFile?.imageServer?.internalUrl
     }
 
     def getMimeType(){

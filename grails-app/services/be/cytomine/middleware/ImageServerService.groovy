@@ -1,23 +1,10 @@
 package be.cytomine.middleware
 
-/*
-* Copyright (c) 2009-2022. Authors: see NOTICE file.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-
 import be.cytomine.AnnotationDomain
 import be.cytomine.Exception.InvalidRequestException
+import be.cytomine.Exception.NotModifiedException
+import be.cytomine.Exception.ObjectNotFoundException
+import be.cytomine.Exception.ServerException
 import be.cytomine.api.UrlApi
 import be.cytomine.image.AbstractImage
 import be.cytomine.image.AbstractSlice
@@ -26,15 +13,20 @@ import be.cytomine.image.ImageInstance
 import be.cytomine.image.SliceInstance
 import be.cytomine.image.UploadedFile
 import be.cytomine.utils.GeometryUtils
+import be.cytomine.utils.ImageResponse
 import be.cytomine.utils.ModelService
+import be.cytomine.utils.StringUtils
 import com.vividsolutions.jts.geom.Geometry
 import com.vividsolutions.jts.io.WKTReader
 import grails.converters.JSON
+import grails.util.Holders
+import groovy.json.JsonOutput
 import groovyx.net.http.ContentType
 import groovyx.net.http.HTTPBuilder
-import groovyx.net.http.HttpResponseException
-import org.apache.http.HttpEntity
-import org.apache.http.util.EntityUtils
+import groovyx.net.http.HttpResponseDecorator
+import groovyx.net.http.Method
+import org.apache.commons.io.IOUtils
+import org.codehaus.groovy.grails.web.servlet.mvc.GrailsParameterMap
 
 class ImageServerService extends ModelService {
     /* TODO: delete dependent objects - do we want to allow this ?
@@ -63,47 +55,136 @@ class ImageServerService extends ModelService {
     }
 
     def storageSpace(ImageServer is) {
-        return JSON.parse(new URL(makeGetUrl("/storage/size.json", is.internalUrl, [:])).text)
+        return makeRequest("/storage/size.json", is.internalUrl, [:], "GET")
+    }
+
+    def formats(ImageServer is) {
+        def response = makeRequest("/formats", is.internalUrl, [:],"json", "GET")
+        return response?.items?.collect { it -> StringUtils.keysToCamelCase(it) }
     }
 
     def downloadUri(UploadedFile uploadedFile) {
-        if (!uploadedFile.path) {
-            throw new InvalidRequestException("Uploaded file has no valid path.")
+        if (uploadedFile.isVirtual()) {
+            throw new InvalidRequestException("Uploaded file is virtual, it has no valid path.")
         }
-        makeGetUrl("/image/download", uploadedFile.imageServer.url,
-                [fif: uploadedFile.path, mimeType: uploadedFile.contentType])
+        // It gets the file specified in the uri.
+        def uri = "/file/${uploadedFile.path}/export"
+        makeGetUrl(uri, uploadedFile.imageServer.url, [:])
     }
 
     def downloadUri(AbstractImage image) {
-        downloadUri(image.uploadedFile)
+        UploadedFile uf = image.uploadedFile
+        if (uf.isVirtual()) {
+            throw new InvalidRequestException("Uploaded file is virtual, it has no valid path.")
+        }
+        // It gets the original image file, (re-)zipped for multi-file formats if needed.
+        def uri = "/image/${uf.path}/export"
+        makeGetUrl(uri, uf.imageServer.url, [:])
     }
 
     def downloadUri(CompanionFile file) {
         downloadUri(file.uploadedFile)
     }
 
+
     def properties(AbstractImage image) {
-        def (server, parameters) = imsParametersFromAbstractImage(image)
-        return JSON.parse(new URL(makeGetUrl("/image/properties.json", server, parameters)).text)
+        def (server, path) = imsParametersFromAbstractImage(image)
+        def uri = "/image/${path}/info"
+        def response = makeRequest(uri, server, [:], "json", "GET")
+        return response
     }
 
-    def profile(AbstractImage image) {
-        def server = image.getImageServerInternalUrl()
-        def parameters = [:]
-        parameters.mimeType = image.uploadedFile.contentType
-        parameters.abstractImage = image.id
-        parameters.uploadedFileParent = image.uploadedFile.id
-        parameters.user = cytomineService.currentUser.id
-        parameters.core = UrlApi.serverUrl()
-        return JSON.parse(new String(makeRequest("/profile.json", server, parameters, "POST")))
+    def rawProperties(AbstractImage image) {
+        def (server, path) = imsParametersFromAbstractImage(image)
+        def uri = "/image/${path}/metadata"
+        def response = makeRequest(uri, server, [:], "json", "GET")
+        return response?.items
     }
 
-    def profile(CompanionFile profile, AnnotationDomain annotation, def params) {
-        def (server, parameters) = imsParametersFromCompanionFile(profile)
-        parameters.location = annotation.location
-        parameters.minSlice = params.minSlice
-        parameters.maxSlice = params.maxSlice
-        return JSON.parse(new URL(makeGetUrl("/profile.json", server, parameters)).text)
+    def imageHistogram(ImageInstance image, int nBins = 256) {
+        return imageHistogram(image.baseImage, nBins)
+    }
+
+    def imageHistogram(AbstractImage image, int nBins = 256) {
+        def (server, path) = imsParametersFromAbstractImage(image)
+        def uri = "/image/${path}/histogram/per-image"
+        def params = [n_bins: nBins]
+        def response = makeRequest(uri, server, params, "json", "GET")
+        return StringUtils.keysToCamelCase(response)
+    }
+
+    def imageHistogramBounds(ImageInstance image) {
+        return imageHistogramBounds(image.baseImage)
+    }
+
+    def imageHistogramBounds(AbstractImage image) {
+        def (server, path) = imsParametersFromAbstractImage(image)
+        def uri = "/image/${path}/histogram/per-image/bounds"
+        def response = makeRequest(uri, server, [:], "json", "GET")
+        return StringUtils.keysToCamelCase(response)
+    }
+
+    def channelHistograms(ImageInstance image, int nBins = 256) {
+        return channelHistograms(image.baseImage, nBins)
+    }
+
+    def channelHistograms(AbstractImage image, int nBins = 256) {
+        def (server, path) = imsParametersFromAbstractImage(image)
+        def uri = "/image/${path}/histogram/per-channels"
+        def params = [n_bins: nBins]
+        def response = makeRequest(uri, server, params, "json", "GET")
+
+        return response?.items?.collect { it ->
+            renameChannelHistogramKeys(StringUtils.keysToCamelCase(it))
+        }
+    }
+
+    def channelHistogramBounds(ImageInstance image) {
+        return channelHistogramBounds(image.baseImage)
+    }
+
+    def channelHistogramBounds(AbstractImage image) {
+        def (server, path) = imsParametersFromAbstractImage(image)
+        def uri = "/image/${path}/histogram/per-channels/bounds"
+        def response = makeRequest(uri, server, [:], "json", "GET")
+
+        return response?.items?.collect { it ->
+            renameChannelHistogramKeys(StringUtils.keysToCamelCase(it))
+        }
+    }
+
+    def planeHistograms(SliceInstance slice, int nBins = 256, boolean allChannels = true) {
+        return planeHistograms(slice.baseSlice, nBins, allChannels)
+    }
+
+    def planeHistograms(AbstractSlice slice, int nBins = 256, boolean allChannels = true) {
+        def (server, path) = imsParametersFromAbstractImage(slice.image)
+        def uri = "/image/${path}/histogram/per-plane/z/${slice.zStack}/t/${slice.time}"
+        def params = [n_bins: nBins]
+        if (!allChannels) {
+            params << [channels: slice.channel]
+        }
+        def response = makeRequest(uri, server, params, "json", "GET")
+        return response?.items?.collect { it ->
+            renameChannelHistogramKeys(StringUtils.keysToCamelCase(it))
+        }
+    }
+
+    def planeHistogramBounds(SliceInstance slice, boolean allChannels = true) {
+        return planeHistogramBounds(slice.baseSlice, allChannels)
+    }
+
+    def planeHistogramBounds(AbstractSlice slice, boolean allChannels = true) {
+        def (server, path) = imsParametersFromAbstractImage(slice.image)
+        def uri = "/image/${path}/histogram/per-plane/z/${slice.zStack}/t/${slice.time}/bounds"
+        def params = [:]
+        if (!allChannels) {
+            params << [channels: slice.channel]
+        }
+        def response = makeRequest(uri, server, params, "json", "GET")
+        return response?.items?.collect { it ->
+            renameChannelHistogramKeys(StringUtils.keysToCamelCase(it))
+        }
     }
 
     def associated(ImageInstance image) {
@@ -111,172 +192,363 @@ class ImageServerService extends ModelService {
     }
 
     def associated(AbstractImage image) {
-        def (server, parameters) = imsParametersFromAbstractImage(image)
-        return JSON.parse(new URL(makeGetUrl("/image/associated.json", server, parameters)).text)
+        def (server, path) = imsParametersFromAbstractImage(image)
+        def uri = "/image/${path}/info/associated"
+        def response = makeRequest(uri, server, [:], "json", "GET")
+        return response?.items?.collect {
+            it.name
+        }
     }
 
-    def label(ImageInstance image, def params) {
-        label(image.baseImage, params)
+    def label(ImageInstance image, def params, String etag = null) {
+        label(image.baseImage, params, etag)
     }
 
-    def label(AbstractImage image, def params) {
-        def (server, parameters) = imsParametersFromAbstractImage(image)
-        def format = checkFormat(params.format, ['jpg', 'png'])
-        parameters.maxSize = params.maxSize
-        parameters.label = params.label
-        return makeRequest("/image/nested.$format", server, parameters)
+    def label(AbstractImage image, def params, String etag = null) {
+        def (server, path) = imsParametersFromAbstractImage(image)
+        def format = checkFormat(params.format, ['jpg', 'png', 'webp'])
+        def parameters = [length: params.maxSize]
+        def uri = "/image/${path}/associated/${params.label.toLowerCase()}"
+
+        def headers = [:]
+        if (etag) {
+            headers << ['If-None-Match': etag]
+        }
+
+        return makeRequest(uri, server, parameters, format, null, headers)
     }
 
-    def thumb(ImageInstance image, def params) {
-        thumb(image.referenceSlice, params)
+    def thumb(ImageInstance image, def params, String etag = null) {
+        thumb(image.baseImage, params, etag)
     }
 
-    def thumb(SliceInstance slice, def params) {
-        thumb(slice.baseSlice, params)
+    def thumb(AbstractImage image, def params, String etag = null) {
+        def (server, path) = imsParametersFromAbstractImage(image)
+        //TODO: fallback to reference slice if n_channels > X ?
+        thumb(server, path, params, etag)
     }
 
-    def thumb(AbstractImage image, def params) {
-        thumb(image.referenceSlice, params)
+    def thumb(SliceInstance slice, def params, String etag = null) {
+        thumb(slice.baseSlice, params, etag)
     }
 
-    def thumb(AbstractSlice slice, def params) {
-        def (server, parameters) = imsParametersFromAbstractSlice(slice)
-        def format = checkFormat(params.format, ['jpg', 'png'])
-        parameters.maxSize = params.maxSize
-        parameters.colormap = params.colormap
-        parameters.inverse = params.inverse
-        parameters.contrast = params.contrast
-        parameters.gamma = params.gamma
-        parameters.bits = (params.bits == "max") ? (slice.image.bitDepth ?: 8) : params.bits
-
-//        AttachedFile attachedFile = AttachedFile.findByDomainIdentAndFilename(abstractImage.id, url)
-//        if (attachedFile) {
-//            return ImageIO.read(new ByteArrayInputStream(attachedFile.getData()))
-//        } else {
-//            String imageServerURL = abstractImage.getRandomImageServerURL()
-//            byte[] imageData = new URL("$imageServerURL"+url).getBytes()
-//            BufferedImage bufferedImage =  ImageIO.read(new ByteArrayInputStream(imageData))
-//            attachedFileService.add(url, imageData, abstractImage.id, AbstractImage.class.getName())
-//            return bufferedImage
-//        }
-
-        return makeRequest("/slice/thumb.$format", server, parameters)
+    def thumb(AbstractSlice slice, def params, String etag = null) {
+        def (server, path) = imsParametersFromAbstractSlice(slice)
+        if (slice.image.channels > 1) {
+            params.put('c', slice.channel)
+            // Ensure that if the slice is RGB, the 3 intrinsic channels are used
+        }
+        params.put('z', slice.zStack)
+        params.put('t', slice.time)
+        thumb(server, path, params, etag)
     }
 
-    def crop(AnnotationDomain annotation, def params, def urlOnly = false, def parametersOnly = false) {
+    def thumb(String server, String path, def params, String etag = null) {
+        def format = checkFormat(params.format, ['jpg', 'png', 'webp'])
+        def uri = "/image/${path}/thumb"
+        def parameters = [
+                length: params.maxSize,
+                gammas: params.gamma,
+                channels: params.c,
+                z_slices: params.z,
+                timepoints: params.t,
+                colormaps: (params.colormap) ? (List) params.colormap.split(',') : null
+        ]
+
+        if (params.bits) {
+            parameters.bits = (params.bits == "max") ? "AUTO" : params.bits as Integer
+            uri = "/image/${path}/resized"
+        }
+
+        if (params.inverse) {
+            if (parameters.colormaps) {
+                parameters.colormaps = parameters.colormaps.collect { invertColormap(it) }
+            }
+            else {
+                parameters.colormaps = "!DEFAULT"
+            }
+        }
+//        parameters.contrast = params.contrast
+
+        def headers = [:]
+        if (etag) {
+            headers << ['If-None-Match': etag]
+        }
+
+        return makeRequest(uri, server, parameters, format, null, headers)
+    }
+
+    def crop(ImageInstance image, GrailsParameterMap params, boolean urlOnly = false,
+             boolean parametersOnly = false, String etag = null) {
+        crop(image.baseImage, params, urlOnly, parametersOnly, etag)
+    }
+
+    def crop(AbstractImage image, GrailsParameterMap params, boolean urlOnly = false,
+             boolean parametersOnly = false, String etag = null) {
+        def (server, path) = imsParametersFromAbstractImage(image)
+        crop(server, path, params, urlOnly, parametersOnly, etag)
+    }
+
+    def crop(AnnotationDomain annotation, GrailsParameterMap params, boolean urlOnly = false,
+             boolean parametersOnly = false, String etag = null) {
         params.geometry = annotation.location
-        crop(annotation.slice, params, urlOnly, parametersOnly)
+        crop(annotation.slice, params, urlOnly, parametersOnly, etag)
     }
 
-    def crop(ImageInstance image, def params, def urlOnly = false, def parametersOnly = false) {
-        crop(image.baseImage.referenceSlice, params, urlOnly, parametersOnly)
+    def crop(SliceInstance slice, GrailsParameterMap params, boolean urlOnly = false,
+             boolean parametersOnly = false, String etag = null) {
+        crop(slice.baseSlice, params, urlOnly, parametersOnly, etag)
     }
 
-    def crop(SliceInstance slice, def params, def urlOnly = false, def parametersOnly = false) {
-        crop(slice.baseSlice, params, urlOnly, parametersOnly)
+    def crop(AbstractSlice slice, GrailsParameterMap params, boolean urlOnly = false,
+             boolean parametersOnly = false, String etag = null) {
+        def (server, path) = imsParametersFromAbstractSlice(slice)
+        if (slice.image.channels > 1) {
+            params.put('c', slice.channel)
+            // Ensure that if the slice is RGB, the 3 intrinsic channels are used
+        }
+        params.put('z', slice.zStack)
+        params.put('t', slice.time)
+        crop(server, path, params, urlOnly, parametersOnly, etag)
     }
 
-    def crop(AbstractSlice slice, def params, def urlOnly = false, def parametersOnly = false) {
-        log.info params
-        def (server, parameters) = imsParametersFromAbstractSlice(slice)
-
+    def crop(String server, String path, GrailsParameterMap params, boolean urlOnly = false,
+             boolean parametersOnly = false, String etag = null) {
         def geometry = params.geometry
         if (!geometry && params.location) {
             geometry = new WKTReader().read(params.location as String)
         }
 
-        // In the window service, boundaries are already set and do not correspond to geometry/location boundaries
-        def boundaries = params.boundaries
-        if (!boundaries && geometry) {
-            boundaries = GeometryUtils.getGeometryBoundaries(geometry)
-        }
-        parameters.topLeftX = boundaries.topLeftX
-        parameters.topLeftY = boundaries.topLeftY
-        parameters.width = boundaries.width
-        parameters.height = boundaries.height
-
+        def wkt = null
         if (params.complete && geometry)
-            parameters.location = simplifyGeometryService.reduceGeometryPrecision(geometry).toText()
+            wkt = simplifyGeometryService.reduceGeometryPrecision(geometry).toText()
         else if (geometry)
-            parameters.location = simplifyGeometryService.simplifyPolygonForCrop(geometry)
+            wkt = simplifyGeometryService.simplifyPolygonForCrop(geometry).toText()
 
-        parameters.imageWidth = slice.image.width
-        parameters.imageHeight = slice.image.height
-        parameters.maxSize = params.int('maxSize')
-        parameters.zoom = (!params.int('maxSize')) ? params.int('zoom') : null
-        parameters.increaseArea = params.double('increaseArea')
-        parameters.safe = params.boolean('safe')
-        parameters.square = params.boolean('square')
+        def parameters = [
+                length: params.int('maxSize'),
+                context_factor: params.double('increaseArea'),
+                gammas: params.double('gamma'),
+                annotations: [geometry: wkt],
+                channels: params.int('c'),
+                z_slices: params.int('z'),
+                timepoints: params.int('t'),
+                colormaps: (params.colormap) ? (List) params.colormap.split(',') : null
+        ]
 
-//        if(location instanceof com.vividsolutions.jts.geom.Point && !params.point.equals("false")) {
-//            boundaries.point = true
-//        }
+        if (!params.int('maxSize')) {
+            // Zoom parameter is in fact normalized level
+            parameters.level = params.int('zoom', 0)
+        }
 
-        parameters.type = checkType(params, ['crop', 'draw', 'mask', 'alphaMask'])
+        if (params.bits) {
+            parameters.bits = (params.bits == "max") ? "AUTO" : params.int('bits')
+        }
+
+        def uri
         def format
-        if (parameters.type == 'alphaMask') {
-            format = checkFormat(params.format, ['png'])
+        switch (checkType(params)) {
+            case 'draw':
+                parameters.try_square = params.boolean('square')
+                parameters.annotations.stroke_color = params.color?.replace("0x", "#")
+                parameters.annotations.stroke_width = params.int('thickness')
+                uri = "/image/${path}/annotation/drawing"
+                format = checkFormat(params.format, ['jpg', 'png', 'webp'])
+                break
+            case 'mask':
+                parameters.annotations.fill_color = '#fff'
+                uri = "/image/${path}/annotation/mask"
+                format = checkFormat(params.format, ['jpg', 'png', 'webp'])
+                break
+            case 'alphaMask':
+            case 'alphamask':
+                parameters.background_transparency = params.int('alpha', 100)
+                uri = "/image/${path}/annotation/crop"
+                format = checkFormat(params.format, ['png', 'webp'])
+                break
+            default:
+                parameters.background_transparency = 0
+                uri = "/image/${path}/annotation/crop"
+                format = checkFormat(params.format, ['jpg', 'png', 'webp'])
         }
-        else {
-            format = checkFormat(params.format, ['jpg', 'png', 'tiff'])
+
+        def headers = ['X-Annotation-Origin': 'LEFT_BOTTOM']
+        if (params.boolean('safe')) {
+            headers << ['X-Image-Size-Safety': 'SAFE_RESIZE']
+        }
+        if (etag) {
+            headers << ['If-None-Match': etag]
         }
 
-        parameters.drawScaleBar = params.boolean('drawScaleBar')
-        parameters.resolution = (params.boolean('drawScaleBar')) ? params.double('resolution') : null
-        parameters.magnification = (params.boolean('drawScaleBar')) ? params.double('magnification') : null
-
-        parameters.colormap = params.colormap
-        parameters.inverse = params.boolean('inverse')
-        parameters.contrast = params.double('contrast')
-        parameters.gamma = params.double('gamma')
-        parameters.bits = (params.bits == "max") ? (slice.image.bitDepth ?: 8) : params.int('bits')
-        parameters.alpha = params.int('alpha')
-        parameters.thickness = params.int('thickness')
-        parameters.color = params.color
-        parameters.jpegQuality = params.int('jpegQuality')
-
-        def uri = "/slice/crop.$format"
+        if (params.inverse) {
+            if (parameters.colormaps) {
+                parameters.colormaps = parameters.colormaps.collect { invertColormap(it) }
+            }
+            else {
+                parameters.colormaps = "!DEFAULT"
+            }
+        }
+//        parameters.contrast = params.double('contrast')
+//        parameters.jpegQuality = params.int('jpegQuality')
 
         if (parametersOnly)
             return [server:server, uri:uri, parameters:parameters]
         if (urlOnly)
             return makeGetUrl(uri, server, parameters)
-        return makeRequest(uri, server, parameters)
+        return makeRequest(uri, server, parameters, format, "POST", headers)
     }
 
-    def window(ImageInstance image, def params, def urlOnly = false) {
-        window(image.baseImage.referenceSlice, params, urlOnly)
+    def window(ImageInstance image, GrailsParameterMap params,
+               boolean urlOnly = false, String etag = null) {
+        window(image.baseImage, params, urlOnly, etag)
     }
 
-    def window(AbstractImage image, def params, def urlOnly = false) {
-        window(image.referenceSlice, params, urlOnly)
+    def window(AbstractImage image, GrailsParameterMap params,
+               boolean urlOnly = false, String etag = null) {
+        def (server, path) = imsParametersFromAbstractImage(image)
+        window(server, path, params, urlOnly, etag)
     }
 
-    def window(SliceInstance slice, def params, def urlOnly = false) {
-        window(slice.baseSlice, params, urlOnly)
+    def window(SliceInstance slice, GrailsParameterMap params,
+               boolean urlOnly = false, String etag = null) {
+        window(slice.baseSlice, params, urlOnly, etag)
     }
 
-    def window(AbstractSlice slice, def params, def urlOnly = false) {
-        def boundaries = [:]
-        boundaries.topLeftX = Math.max((int) params.int('x'), 0)
-        boundaries.topLeftY = Math.max((int) params.int('y'), 0)
-        boundaries.width = params.int('w')
-        boundaries.height = params.int('h')
+    def window(AbstractSlice slice, GrailsParameterMap params,
+               boolean urlOnly = false, String etag = null) {
+        def (server, path) = imsParametersFromAbstractSlice(slice)
+        if (slice.image.channels > 1) {
+            params.put('c', slice.channel)
+            // Ensure that if the slice is RGB, the 3 intrinsic channels are used
+        }
+        params.put('z', slice.zStack)
+        params.put('t', slice.time)
+        window(server, path, params, urlOnly, etag)
+    }
 
-        def withExterior = params.boolean('withExterior', false)
-        if (!withExterior) {
-            // Do not take part outside of the real image
-            if(slice.image.width && (boundaries.width + boundaries.topLeftX) > slice.image.width) {
-                boundaries.width = slice.image.width - boundaries.topLeftX
+    def window(String server, String path, GrailsParameterMap params,
+               boolean urlOnly = false, String etag = null) {
+        log.debug params
+        def parameters = [
+                region: [
+                        left: params.int('x', 0),
+                        top: params.int('y', 0),
+                        width: params.int('w'),
+                        height: params.int('h')
+                ],
+                length: params.int('maxSize'),
+                gammas: params.double('gamma'),
+                channels: params.int('c'),
+                z_slices: params.int('z'),
+                timepoints: params.int('t'),
+                colormaps: (params.colormap) ? (List) params.colormap.split(',') : null
+        ]
+
+        if (!params.int('maxSize')) {
+            // Cytomine API window zoom parameter is in fact normalized level in PIMS
+            parameters.level = params.int('zoom', 0)
+        }
+
+        if (params.bits) {
+            parameters.bits = (params.bits == "max") ? "AUTO" : params.int('bits')
+        }
+
+        if (params.inverse) {
+            if (parameters.colormaps) {
+                parameters.colormaps = parameters.colormaps.collect { invertColormap(it) }
             }
-            if(slice.image.height && (boundaries.height + boundaries.topLeftY) > slice.image.height) {
-                boundaries.height = slice.image.height - boundaries.topLeftY
+            else {
+                parameters.colormaps = "!DEFAULT"
             }
         }
 
-        boundaries.topLeftY = Math.max((int) (slice.image.height - boundaries.topLeftY), 0)
-        params.boundaries = boundaries
-        crop(slice, params, urlOnly)
+        def format = checkFormat(params.format, ['jpg', 'png', 'webp'])
+
+        if (params.geometries) {
+            def strokeColor = params.color?.replace("0x", "#") ?: "black"
+            def strokeWidth = params.int('thickness') ?: 1 // TODO: check scale
+            def annotationType = checkType(params)
+
+            parameters.annotations = params.geometries.collect { geometry ->
+                def wkt = null
+                if (params.complete)
+                    wkt = simplifyGeometryService.reduceGeometryPrecision(geometry).toText()
+                else
+                    wkt = simplifyGeometryService.simplifyPolygonForCrop(geometry).toText()
+
+                def annot = [geometry: wkt]
+
+                switch (annotationType) {
+                    case 'draw':
+                        annot.stroke_color = strokeColor
+                        annot.stroke_width = strokeWidth
+                        break
+                    case 'mask':
+                        annot.fill_color = '#fff'
+                        break
+                }
+
+                return annot
+            }
+
+            def annotationStyle = [:]
+            switch (annotationType) {
+                case 'draw':
+                    annotationStyle.mode = "DRAWING"
+                    break
+                case 'mask':
+                    annotationStyle.mode = "MASK"
+                    break
+                case 'alphaMask':
+                case 'alphamask':
+                    annotationStyle.mode = "CROP"
+                    annotationStyle.background_transparency = params.int('alpha', 100)
+                    format = checkFormat(params.format, ['png', 'webp'])
+                    break
+                default:
+                    annotationStyle.mode = "CROP"
+                    annotationStyle.background_transparency = 0
+            }
+            parameters.annotation_style = annotationStyle
+        }
+
+        def headers = ['X-Annotation-Origin': 'LEFT_BOTTOM']
+        if (params.boolean('safe')) {
+            headers << ['X-Image-Size-Safety': 'SAFE_RESIZE']
+        }
+        if (etag) {
+            headers << ['If-None-Match': etag]
+        }
+
+        def uri = "/image/${path}/window"
+        if (urlOnly)
+            return makeGetUrl(uri, server, parameters)
+        return makeRequest(uri, server, parameters, format, "POST", headers)
+
+//        def boundaries = [:]
+//        boundaries.topLeftX = Math.max((int) params.int('x'), 0)
+//        boundaries.topLeftY = Math.max((int) params.int('y'), 0)
+//        boundaries.width = params.int('w')
+//        boundaries.height = params.int('h')
+//
+//        def withExterior = params.boolean('withExterior', false)
+//        if (!withExterior) {
+//            // Do not take part outside of the real image
+//            if(slice.image.width && (boundaries.width + boundaries.topLeftX) > slice.image.width) {
+//                boundaries.width = slice.image.width - boundaries.topLeftX
+//            }
+//            if(slice.image.height && (boundaries.height + boundaries.topLeftY) > slice.image.height) {
+//                boundaries.height = slice.image.height - boundaries.topLeftY
+//            }
+//        }
+//
+//        boundaries.topLeftY = Math.max((int) (slice.image.height - boundaries.topLeftY), 0)
+//        params.boundaries = boundaries
+//        crop(slice, params, urlOnly)
+
+//        parameters.drawScaleBar = params.boolean('drawScaleBar')
+//        parameters.resolution = (params.boolean('drawScaleBar')) ? params.double('resolution') : null
+//        parameters.magnification = (params.boolean('drawScaleBar')) ? params.double('magnification') : null
     }
 
     private static def imsParametersFromAbstractImage(AbstractImage image) {
@@ -285,11 +557,7 @@ class ImageServerService extends ModelService {
         }
 
         def server = image.getImageServerInternalUrl()
-        def parameters = [
-                fif: image.path,
-                mimeType: image.uploadedFile.contentType
-        ]
-        return [server, parameters]
+        return [server, image.path]
     }
 
     private static def imsParametersFromAbstractSlice(AbstractSlice slice) {
@@ -298,30 +566,117 @@ class ImageServerService extends ModelService {
         }
 
         def server = slice.getImageServerInternalUrl()
-        def parameters = [
-                fif: slice.path,
-                mimeType: slice.mimeType
-        ]
-        return [server, parameters]
+        return [server, slice.path]
     }
 
-    private static def imsParametersFromCompanionFile(CompanionFile cf) {
+    //TODO
+    private static def hmsInternalUrl() {
+        def url = Holders.config.grails.hyperspectralServerURL
+        return (Holders.config.grails.useHTTPInternally) ? url.replace("https", "http") : url;
+    }
+
+    //TODO
+    private static def hmsParametersFromCompanionFile(CompanionFile cf) {
         if (!cf.path) {
             throw new InvalidRequestException("Companion file has no valid path.")
         }
 
-        def server = cf.getImageServerInternalUrl()
+        def server = hmsInternalUrl()
         def parameters = [fif: cf.path]
         return [server, parameters]
     }
 
     private static def filterParameters(parameters) {
-        parameters.findAll { it.value != null && it.value != ""}
+        parameters.findAll {
+            it.value != null && it.value != ""
+        }
+    }
+
+    private static def extractPIMSHeaders(HttpResponseDecorator.HeadersDecorator headers) {
+        def names = ["Cache-Control", "ETag", "X-Annotation-Origin", "X-Image-Size-Limit"]
+        def extractedHeaders = [:]
+        names.each { name ->
+            def h = headers[name] ?: headers[name.toLowerCase()]
+            if (h) {
+                extractedHeaders << [(name): h.getValue()]
+            }
+        }
+        return extractedHeaders
+    }
+
+    private static def makeRequest(def path, def server, def parameters,
+                                   def format, def httpMethod=null, def customHeaders=[:]) {
+        def final GET_URL_MAX_LENGTH = 512
+        parameters = filterParameters(parameters)
+        def url = makeGetUrl(path, server, parameters)
+        def responseContentType = formatToContentType(format)
+
+        def okClosure = { resp, stream ->
+            if (responseContentType == 'application/json')
+                return stream
+            return new ImageResponse(IOUtils.toByteArray(stream), extractPIMSHeaders(resp.headers))
+        }
+        def notModifiedClosure = { resp ->
+            throw new NotModifiedException(extractPIMSHeaders(resp.headers))
+        }
+        def badRequestClosure = { resp, json ->
+            log.error(json)
+            throw new InvalidRequestException("$url returned a 400 Bad Request")
+        }
+        def notFoundClosure = { resp ->
+            log.error(resp)
+            throw new ObjectNotFoundException("$url returned a 404 Not found")
+        }
+        def internalServerErrorClosure = { resp ->
+            log.error(resp)
+            throw new ServerException("$url returned a 500 Internal error")
+        }
+
+        def http = new HTTPBuilder(server)
+        if (responseContentType == "image/webp") {
+            // Avoid parser registry to throw a warning for unknown content type
+            def parserRegistry = http.getParser()
+            parserRegistry.putAt("image/webp", parserRegistry.getDefaultParser())
+        }
+
+        if ((url.size() < GET_URL_MAX_LENGTH && httpMethod == null) || httpMethod == "GET") {
+            http.request(Method.GET, responseContentType) {
+                uri.path = path
+                uri.query = parameters
+                requestContentType = ContentType.JSON
+                headers = customHeaders
+
+                response.'200' = okClosure
+                response.'304' = notModifiedClosure
+                response.'400' = badRequestClosure
+                response.'404' = notFoundClosure
+                response.'422' = badRequestClosure
+                response.'500' = internalServerErrorClosure
+            }
+        }
+        else {
+            http.request(Method.POST, responseContentType) {
+                uri.path = path
+                requestContentType = ContentType.JSON
+                body = JsonOutput.toJson(parameters)
+                headers = customHeaders
+
+                response.'200' = okClosure
+                response.'304' = notModifiedClosure
+                response.'400' = badRequestClosure
+                response.'404' = notFoundClosure
+                response.'422' = badRequestClosure
+                response.'500' = internalServerErrorClosure
+            }
+        }
     }
 
     private static def makeGetUrl(def uri, def server, def parameters) {
         parameters = filterParameters(parameters)
         String query = parameters.collect { key, value ->
+            if (value instanceof List)
+                value = value.join(',')
+
             if (value instanceof Geometry)
                 value = value.toText()
 
@@ -333,57 +688,51 @@ class ImageServerService extends ModelService {
         return "$server$uri?$query"
     }
 
-    private byte[] makeRequest(def uri, def server, def parameters, def httpMethod=null) {
-        def final GET_URL_MAX_LENGTH = 512
-        parameters = filterParameters(parameters)
-        def url = makeGetUrl(uri, server, parameters)
-
-        def http = new HTTPBuilder(server)
-        try{
-            if ((url.size() < GET_URL_MAX_LENGTH && httpMethod == null) || httpMethod == "GET") {
-                (byte[]) http.get(path: uri, requestContentType: ContentType.URLENC, query: parameters) { response ->
-                    HttpEntity entity = response.getEntity()
-                    if (entity != null) {
-                        return EntityUtils.toByteArray(entity)
-                    }
-                    else
-                        return null
-                }
-            }
-            else {
-                (byte[]) http.post(path: uri, requestContentType: ContentType.URLENC, body: parameters) { response ->
-                    HttpEntity entity = response.getEntity()
-                    if (entity != null) {
-                        return EntityUtils.toByteArray(entity)
-                    }
-                    else
-                        return null
-                }
-            }
-        } catch(HttpResponseException e){
-            log.error("Error for url : $url")
-            log.error(e.message)
-            e.printStackTrace()
-        }
-    }
-
-    private static def checkFormat(def format, def accepted) {
+    private static String checkFormat(String format, ArrayList<String> accepted) {
         if (!accepted)
             accepted = ['jpg']
 
         return (!accepted.contains(format)) ? accepted[0] : format
     }
 
-    def checkType(def params, def accepted = null) {
-        if (params.type && accepted?.contains(params.type))
-            return params.type
-        else if (params.draw)
+    private static String formatToContentType(String format) {
+        switch (format) {
+            case 'png':
+                return 'image/png'
+            case 'webp':
+                return 'image/webp'
+            case 'jpg':
+                return 'image/jpeg'
+            default:
+                return 'application/json'
+        }
+    }
+
+    String checkType(GrailsParameterMap params) {
+        if (params.draw || params.type == 'draw')
             return 'draw'
-        else if (params.mask)
+        else if (params.mask || params.type == 'mask')
             return 'mask'
-        else if (params.alphaMask)
+        else if (params.alphaMask || params.alphamask ||
+                params.type?.toLowerCase() == 'alphamask')
             return 'alphaMask'
         else
             return 'crop'
+    }
+
+    private static String invertColormap(String colormap) {
+        if (colormap[0] == '!') {
+            return colormap.substring(1)
+        }
+        return '!' + colormap
+    }
+
+    private static Map renameChannelHistogramKeys(Map hist) {
+        def channel = hist['concreteChannel']
+        def apparentChannel = hist['channel']
+        hist['channel'] = channel
+        hist['apparentChannel'] = apparentChannel
+        hist.remove('concreteChannel')
+        return hist
     }
 }

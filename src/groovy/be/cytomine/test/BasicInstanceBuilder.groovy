@@ -886,7 +886,7 @@ class BasicInstanceBuilder {
     static AbstractImage getAbstractImage() {
         AbstractImage image = AbstractImage.findByOriginalFilename("originalFilename")
         if (!image) {
-            image = new AbstractImage(uploadedFile: getUploadedFile(), originalFilename:"originalFilename", width: 16000, height: 16000, depth: 5, duration: 2, channels: 3)
+            image = new AbstractImage(uploadedFile: getUploadedFile(), originalFilename:"originalFilename", width: 16000, height: 16000, depth: 1, duration: 1, channels: 1)
         }
         image = saveDomain(image)
         //saveDomain(new StorageAbstractImage(storage : getStorage(), abstractImage : image))
@@ -919,7 +919,7 @@ class BasicInstanceBuilder {
     }
 
     static AbstractImage getAbstractImageNotExist(String filename, boolean save = false) {
-        def image = new AbstractImage(uploadedFile: getUploadedFileNotExist(true), originalFilename:filename, width: 16000, height: 16000, depth: 5, duration: 2, channels: 3)
+        def image = new AbstractImage(uploadedFile: getUploadedFileNotExist(true), originalFilename:filename, width: 16000, height: 16000, depth: 1, duration: 1, channels: 1)
         if(save) {
             saveDomain(image)
             saveDomain(new AbstractSlice(uploadedFile: image.uploadedFile, image: image, mime: getMime(),  channel: 0, zStack: 0, time: 0))
@@ -930,7 +930,7 @@ class BasicInstanceBuilder {
     }
 
     static AbstractImage getAbstractImageNotExist(UploadedFile uploadedFile, boolean save = false) {
-        def image = new AbstractImage(uploadedFile: uploadedFile, originalFilename:getRandomString(), width: 16000, height: 16000, depth: 5, duration: 2, channels: 3)
+        def image = new AbstractImage(uploadedFile: uploadedFile, originalFilename:getRandomString(), width: 16000, height: 16000, depth: 1, duration: 1, channels: 1)
         if(save) {
             saveDomain(image)
             //saveDomain(new StorageAbstractImage(storage : getStorage(), abstractImage : image))
@@ -1860,6 +1860,9 @@ class BasicInstanceBuilder {
             abstractImage.originalFilename = "test.tif"
             abstractImage.width = 25088
             abstractImage.height = 37888
+            abstractImage.channels = 1
+            abstractImage.depth = 1
+            abstractImage.duration = 1
             abstractImage.magnification = 8
             abstractImage.physicalSizeX = 0.65d
             abstractImage.originalFilename = "test01.jpg"

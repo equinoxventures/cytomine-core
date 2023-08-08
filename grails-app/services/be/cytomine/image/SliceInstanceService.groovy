@@ -2,7 +2,6 @@ package be.cytomine.image
 
 import be.cytomine.command.AddCommand
 import be.cytomine.command.Command
-import be.cytomine.command.DeleteCommand
 import be.cytomine.command.EditCommand
 import be.cytomine.command.Transaction
 import be.cytomine.ontology.AnnotationIndex
@@ -10,16 +9,11 @@ import be.cytomine.ontology.AnnotationTrack
 import be.cytomine.project.Project
 import be.cytomine.security.SecUser
 import be.cytomine.utils.ModelService
-import be.cytomine.utils.SQLUtils
 import be.cytomine.utils.Task
 import grails.converters.JSON
-import groovy.sql.Sql
 import org.hibernate.FetchMode
 
-import java.nio.file.Paths
-
 import static org.springframework.security.acls.domain.BasePermission.READ
-import static org.springframework.security.acls.domain.BasePermission.WRITE
 
 class SliceInstanceService extends ModelService {
 
@@ -57,17 +51,22 @@ class SliceInstanceService extends ModelService {
         slice
     }
 
-    def list(ImageInstance image) {
+    def list(ImageInstance image, String sortedProperty = null, String sortDirection = null, Long max  = 0, Long offset = 0, searchParameters = []) {
         securityACLService.check(image, READ)
-        SliceInstance.createCriteria().list {
-            createAlias("baseSlice", "as")
-            eq("image", image)
-            isNull("deleted")
+        def validSearchParameters = getDomainAssociatedSearchParameters(SliceInstance, searchParameters)
+        Closure sorting = {
             order("as.time", "asc")
             order("as.zStack", "asc")
             order("as.channel", "asc")
-            fetchMode("baseSlice", FetchMode.JOIN)
         }
+
+        criteriaRequestWithPagination(SliceInstance, max, offset, {
+            createAlias("baseSlice", "as")
+            isNull("deleted")
+            eq("image", image)
+            fetchMode("baseSlice", FetchMode.JOIN)
+        }, validSearchParameters, sortedProperty, sortDirection, sorting)
+
     }
 
     def add(def json) {
@@ -97,7 +96,7 @@ class SliceInstanceService extends ModelService {
         securityACLService.checkFullOrRestrictedForOwner(slice.container(), slice.image.user)
         SecUser currentUser = cytomineService.getCurrentUser()
         def jsonNewData = JSON.parse(slice.encodeAsJSON())
-        println jsonNewData
+        log.debug jsonNewData
         jsonNewData.deleted = new Date().time
         Command c = new EditCommand(user: currentUser)
         c.delete = true

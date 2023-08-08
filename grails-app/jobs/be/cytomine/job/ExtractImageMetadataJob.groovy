@@ -18,46 +18,69 @@ package be.cytomine.job
 
 import be.cytomine.image.AbstractImage
 import be.cytomine.image.UploadedFile
-import grails.validation.ValidationException
-import org.springframework.transaction.annotation.Transactional
+import be.cytomine.middleware.ImageServer
+import be.cytomine.utils.Version
+import org.joda.time.DateTime
 
 class ExtractImageMetadataJob {
 
     def imagePropertiesService
-    def sampleHistogramService
 
     static triggers = {
-        simple name: 'extractImageMetadataJob', startDelay: 10000, repeatInterval: 1000*20
+        simple name: 'extractImageMetadataJob', startDelay: 10000, repeatInterval: 1000*15
     }
 
-    @Transactional
     def execute() {
-        Collection<AbstractImage> abstractImages = AbstractImage.findAllByWidthInListOrWidthIsNull([-1,0])
-        abstractImages.each { image ->
-            try {
-                imagePropertiesService.extractUseful(image)
-            } catch (ValidationException e) {
-                log.error "$image cannot be saved"
-                log.error e.getMessage()
-            }
-        }
-        //TODO activate when bitPerSample is implemented
-        /*Collection<AbstractImage> abstractImages = AbstractImage.findAllBySamplePerPixelIsNullOrWidthIsNullOrWidth(-1, [max: 10, sort: "created", order: "desc"])
-        abstractImages.each { image ->
-            try {
-                UploadedFile.withNewSession {
-                    AbstractImage.withNewSession {
-                        image.attach()
-                        log.info "Regenerate properties for image $image - ${image.originalFilename}"
-                        imagePropertiesService.regenerate(image)
-                        if (image.bitPerSample > 8)
-                            sampleHistogramService.extractHistogram(image)
-                    }
-                }
-            }
-            catch (Exception e) {
-                log.error "Error during metadata extraction for image $image: ${e.printStackTrace()}"
-            }
-        }*/
+//        Version v = Version.getLastVersion()
+//        if (v?.major >= 2) {
+//            Date yesterday = new DateTime().minusDays(1).toDate()
+//            Collection<AbstractImage> abstractImages = AbstractImage.createCriteria().list(max: 10) {
+//                createAlias("uploadedFile", "uf")
+//                and {
+//                    ne("uf.contentType", "virtual/stack")
+//                    ne("uf.contentType", "application/zip")
+//                    ne("uf.contentType", "CZI")
+//                    or {
+//                        isNull("bitPerSample")
+//                        isNull("width")
+//                        eq("width", -1)
+//                        ne("channels", 1)
+//                    }
+//                    isNull("deleted")
+//                    isNull("extractedMetadata")
+//                    lt("created", yesterday) //to avoid conflict with running image conversions
+//                }
+//                order("created", "desc")
+//            }
+//
+//            abstractImages.each { image ->
+//                try {
+//                    ImageServer.withNewSession {
+//                        UploadedFile.withNewSession {
+//                            AbstractImage.withNewSession {
+//                                image.attach()
+//                                image.uploadedFile.attach()
+//                                image.uploadedFile.imageServer.attach()
+//
+//                                log.info "Regenerate properties for image $image - ${image.originalFilename}"
+//                                try {
+//                                    imagePropertiesService.regenerate(image,true)
+//                                }
+//                                catch (Exception e) {
+//                                    log.error "Error during metadata extraction for image $image: ${e.printStackTrace()}"
+//                                    image.extractedMetadata = new Date()
+//                                    image.save(flush: true)
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//                catch (Exception e) {
+//                    log.error "Error during metadata extraction for image $image: ${e.printStackTrace()}"
+//                }
+//            }
+//        }
+
+
     }
 }

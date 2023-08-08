@@ -22,22 +22,16 @@ import be.cytomine.Exception.InvalidRequestException
 import be.cytomine.api.RestController
 import be.cytomine.image.ImageInstance
 import be.cytomine.image.SliceInstance
-import be.cytomine.image.multidim.ImageGroup
-import be.cytomine.meta.Property
 import be.cytomine.ontology.UserAnnotation
 import be.cytomine.project.Project
 import be.cytomine.security.SecUser
 import be.cytomine.sql.ReviewedAnnotationListing
-import be.cytomine.test.HttpClient
-import be.cytomine.meta.Description
 import be.cytomine.utils.GeometryUtils
 import com.vividsolutions.jts.geom.Geometry
-import com.vividsolutions.jts.geom.GeometryCollection
-import com.vividsolutions.jts.geom.GeometryFactory
 import com.vividsolutions.jts.io.WKTReader
-import com.vividsolutions.jts.io.WKTWriter
 import grails.converters.JSON
 import org.codehaus.groovy.grails.web.json.JSONObject
+import org.codehaus.groovy.grails.web.servlet.mvc.GrailsParameterMap
 import org.restapidoc.annotation.*
 import org.restapidoc.pojo.RestApiParamType
 import static org.springframework.security.acls.domain.BasePermission.READ
@@ -77,6 +71,9 @@ class RestImageInstanceController extends RestController {
     }
 
     @RestApiMethod(description="Get all image instance available for the current user", listing = true)
+    @RestApiParams(params=[
+            @RestApiParam(name="user", type="long", paramType = RestApiParamType.PATH, description = "The user id")
+    ])
     def listByUser() {
         String sortColumn = params.sort ? params.sort : "created"
         String sortDirection = params.order ? params.order : "desc"
@@ -86,6 +83,9 @@ class RestImageInstanceController extends RestController {
     }
 
     @RestApiMethod(description="Get a lighted list of all image instance available for the current user", listing = true)
+    @RestApiParams(params=[
+            @RestApiParam(name="user", type="long", paramType = RestApiParamType.PATH, description = "The user id")
+    ])
     def listLightByUser() {
         responseSuccess(imageInstanceService.listLight(cytomineService.currentUser))
     }
@@ -117,9 +117,9 @@ class RestImageInstanceController extends RestController {
             def fieldFormat = []
             responseSuccess(dataTablesService.process(params, ImageInstance, where, fieldFormat,project))
         }
-        else if (project && light) {
-            responseSuccess(imageInstanceService.listLight(project))
-        }
+//        else if (project && light) {
+//            responseSuccess(imageInstanceService.listLight(project))
+//        }
         else if (project && !params.tree) {
             String sortColumn = params.sort ?: "created"
             String sortDirection = params.order ?: "desc"
@@ -207,6 +207,50 @@ class RestImageInstanceController extends RestController {
 
     def dataSource
 
+    def histogram() {
+        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+        if (imageInstance) {
+            def histogram = imageServerService.imageHistogram(
+                    imageInstance, params.int("nBins", 256)
+            )
+            responseSuccess(histogram)
+        } else {
+            responseNotFound("Image", params.id)
+        }
+    }
+
+    def histogramBounds() {
+        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+        if (imageInstance) {
+            def histogramBounds = imageServerService.imageHistogramBounds(imageInstance)
+            responseSuccess(histogramBounds)
+        } else {
+            responseNotFound("Image", params.id)
+        }
+    }
+
+    def channelHistograms() {
+        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+        if (imageInstance) {
+            def histograms = imageServerService.channelHistograms(
+                    imageInstance, params.int("nBins", 256)
+            )
+            responseSuccess(histograms)
+        } else {
+            responseNotFound("Image", params.id)
+        }
+    }
+
+    def channelHistogramBounds() {
+        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+        if (imageInstance) {
+            def channelHistogramBounds = imageServerService.channelHistogramBounds(imageInstance)
+            responseSuccess(channelHistogramBounds)
+        } else {
+            responseNotFound("Image", params.id)
+        }
+    }
+
     @RestApiMethod(description="Get a small image (thumb) for a specific image", extensions=["png", "jpg"])
     @RestApiParams(params=[
             @RestApiParam(name="id", type="long", paramType=RestApiParamType.PATH, description="The image id"),
@@ -230,8 +274,8 @@ class RestImageInstanceController extends RestController {
             parameters.contrast = params.double('contrast')
             parameters.gamma = params.double('gamma')
             parameters.bits = (params.bits == "max") ? "max" : params.int('bits')
-            parameters.refresh = params.boolean('refresh', false)
-            responseByteArray(imageServerService.thumb(imageInstance, parameters))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.thumb(imageInstance, parameters, etag))
         } else {
             responseNotFound("Image", params.id)
         }
@@ -259,7 +303,8 @@ class RestImageInstanceController extends RestController {
             parameters.contrast = params.double('contrast')
             parameters.gamma = params.double('gamma')
             parameters.bits = (params.bits == "max") ? "max" : params.int('bits')
-            responseByteArray(imageServerService.thumb(imageInstance, parameters))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.thumb(imageInstance, parameters, etag))
         } else {
             responseNotFound("Image", params.id)
         }
@@ -294,8 +339,9 @@ class RestImageInstanceController extends RestController {
             parameters.format = params.format
             parameters.label = params.label
             parameters.maxSize = params.int('maxSize', 256)
-            def associatedImage = imageServerService.label(imageInstance, parameters)
-            responseByteArray(associatedImage)
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            def associatedImage = imageServerService.label(imageInstance, parameters, etag)
+            responseImage(associatedImage)
         } else {
             responseNotFound("Image", params.id)
         }
@@ -304,58 +350,63 @@ class RestImageInstanceController extends RestController {
     def crop() {
         ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
         if (imageInstance) {
-            responseByteArray(imageServerService.crop(imageInstance, params))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.crop(imageInstance, params, false, false, etag))
         } else {
             responseNotFound("Image", params.id)
         }
 
     }
 
-    def windowUrl() {
-        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
-        if (imageInstance) {
-            String url = imageServerService.window(imageInstance.baseImage, params, true)
-            responseSuccess([url : url])
-        } else {
-            responseNotFound("Image", params.id)
-        }
-
-    }
+//    def windowUrl() {
+//        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+//        if (imageInstance) {
+//            String url = imageServerService.window(imageInstance.baseImage, params, true)
+//            responseSuccess([url : url])
+//        } else {
+//            responseNotFound("Image", params.id)
+//        }
+//
+//    }
 
     def window() {
         ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
         if (imageInstance) {
-            if (params.mask || params.alphaMask || params.alphaMask || params.draw || params.type in ['draw', 'mask', 'alphaMask', 'alphamask'])
-                params.location = getWKTGeometry(imageInstance, params)
-            responseByteArray(imageServerService.window(imageInstance.baseImage, params, false))
+
+            def annotationType = imageServerService.checkType(params)
+            if (annotationType != 'crop') {
+                params.geometries = getWKTGeometry(imageInstance, params)
+            }
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.window(imageInstance, params, false, etag))
         } else {
             responseNotFound("Image", params.id)
         }
     }
 
-    def cameraUrl() {
-        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
-        if (imageInstance) {
-            params.withExterior = false
-            String url = imageServerService.window(imageInstance.baseImage, params, true)
-            responseSuccess([url : url])
-        } else {
-            responseNotFound("Image", params.id)
-        }
-    }
-
-    def camera() {
-        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
-        if (imageInstance) {
-            params.withExterior = false
-            responseByteArray(imageServerService.window(imageInstance.baseImage, params, false))
-        } else {
-            responseNotFound("Image", params.id)
-        }
-    }
+//    def cameraUrl() {
+//        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+//        if (imageInstance) {
+//            params.withExterior = false
+//            String url = imageServerService.window(imageInstance.baseImage, params, true)
+//            responseSuccess([url : url])
+//        } else {
+//            responseNotFound("Image", params.id)
+//        }
+//    }
+//
+//    def camera() {
+//        ImageInstance imageInstance = imageInstanceService.read(params.long("id"))
+//        if (imageInstance) {
+//            params.withExterior = false
+//            responseImage(imageServerService.window(imageInstance.baseImage, params, false))
+//        } else {
+//            responseNotFound("Image", params.id)
+//        }
+//    }
 
     //todo : move into a service
-    public String getWKTGeometry(ImageInstance imageInstance, params) {
+    public List<Geometry> getWKTGeometry(ImageInstance imageInstance, GrailsParameterMap params) {
         def geometries = []
         if (params.annotations && !params.reviewed) {
             def idAnnotations = params.annotations.split(',')
@@ -389,23 +440,10 @@ class RestImageInstanceController extends RestController {
             }
             List<Long> imageIDS = [imageInstance.id]
 
-            log.info params
-            //Create a geometry corresponding to the ROI of the request (x,y,w,h)
-            int x
-            int y
-            int w
-            int h
-            try {
-                x = params.int('topLeftX')
-                y = params.int('topLeftY')
-                w = params.int('width')
-                h = params.int('height')
-            }catch (Exception e) {
-                x = params.int('x')
-                y = params.int('y')
-                w = params.int('w')
-                h = params.int('h')
-            }
+            def x = params.int('x')
+            def y = params.int('y')
+            def w = params.int('w')
+            def h = params.int('h')
             Geometry roiGeometry = GeometryUtils.createBoundingBox(
                     x,                                      //minX
                     x + w,                                  //maxX
@@ -416,8 +454,10 @@ class RestImageInstanceController extends RestController {
 
             //Fetch annotations with the requested term on the request image
 
-            if (params.review) {
-                ReviewedAnnotationListing ral = new ReviewedAnnotationListing(project: imageInstance.getProject().id, terms: termsIDS, reviewUsers: userIDS, images:imageIDS, bbox:roiGeometry, columnToPrint:['basic','meta','wkt','term']  )
+            if (params.reviewed) {
+                ReviewedAnnotationListing ral = new ReviewedAnnotationListing(project: imageInstance.getProject().id,
+                        terms: termsIDS, reviewUsers: userIDS, images:imageIDS, bbox:roiGeometry,
+                        columnToPrint:['basic','meta','wkt','term']  )
                 def result = annotationListingService.listGeneric(ral)
                 log.info "annotations=${result.size()}"
                 geometries = result.collect {
@@ -431,13 +471,10 @@ class RestImageInstanceController extends RestController {
                 log.info "userIDS=${userIDS}"
                 Collection<UserAnnotation> annotations = userAnnotationService.list(imageInstance, roiGeometry, termsIDS, userIDS)
                 log.info "annotations=${annotations.size()}"
-                geometries = annotations.collect { geometry ->
-                    geometry.getLocation()
-                }
+                geometries = annotations.collect { it.location }
             }
         }
-        GeometryCollection geometryCollection = new GeometryCollection((Geometry[])geometries, new GeometryFactory())
-        return new WKTWriter().write(geometryCollection)
+        return geometries
     }
 
     def download() {

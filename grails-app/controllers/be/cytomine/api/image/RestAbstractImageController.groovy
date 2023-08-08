@@ -33,14 +33,12 @@ import org.restapidoc.pojo.RestApiParamType
 @RestApi(name = "Image | abstract image services", description = "Methods for managing an image. See image instance service to manage an instance of image in a project.")
 class RestAbstractImageController extends RestController {
 
+    def imagePropertiesService
     def abstractImageService
     def cytomineService
     def projectService
     def imageServerService
     def uploadedFileService
-    def imageSequenceService
-    def securityACLService
-    def imagePropertiesService
 
     @RestApiMethod(description="Get all image available for the current user", listing = true)
     @RestApiParams(params=[
@@ -103,7 +101,6 @@ class RestAbstractImageController extends RestController {
         @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH,description = "The image id")
     ])
     def update() {
-        log.info("update image (controller)")
         update(abstractImageService, request.JSON)
     }
 
@@ -162,8 +159,8 @@ class RestAbstractImageController extends RestController {
             parameters.contrast = params.double('contrast')
             parameters.gamma = params.double('gamma')
             parameters.bits = (params.bits == "max") ? "max" : params.int('bits')
-            parameters.refresh = params.boolean('refresh', false)
-            responseByteArray(imageServerService.thumb(abstractImage.referenceSlice, parameters))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.thumb(abstractImage, parameters, etag))
         } else {
             responseNotFound("Image", params.id)
         }
@@ -191,7 +188,8 @@ class RestAbstractImageController extends RestController {
             parameters.contrast = params.double('contrast')
             parameters.gamma = params.double('gamma')
             parameters.bits = (params.bits == "max") ? "max" : params.int('bits')
-            responseByteArray(imageServerService.thumb(abstractImage.referenceSlice, parameters))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.thumb(abstractImage, parameters, etag))
         } else {
             responseNotFound("Image", params.id)
         }
@@ -226,8 +224,9 @@ class RestAbstractImageController extends RestController {
             parameters.format = params.format
             parameters.label = params.label
             parameters.maxSize = params.int('maxSize', 256)
-            def associatedImage = imageServerService.label(abstractImage, parameters)
-            responseByteArray(associatedImage)
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            def associatedImage = imageServerService.label(abstractImage, parameters, etag)
+            responseImage(associatedImage)
         } else {
             responseNotFound("Image", params.id)
         }
@@ -236,51 +235,53 @@ class RestAbstractImageController extends RestController {
     def crop() {
         AbstractImage abstractImage = abstractImageService.read(params.long("id"))
         if (abstractImage && abstractImage.referenceSlice) {
-            responseByteArray(imageServerService.crop(abstractImage.referenceSlice, params))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.crop(abstractImage, params, false, false, etag))
         } else {
             responseNotFound("Image", params.id)
         }
     }
 
-    def windowUrl() {
-        AbstractImage abstractImage = abstractImageService.read(params.long("id"))
-        if (abstractImage && abstractImage.referenceSlice) {
-            String url = imageServerService.window(abstractImage.referenceSlice, params, true)
-            responseSuccess([url : url])
-        } else {
-            responseNotFound("Image", params.id)
-        }
-    }
+//    def windowUrl() {
+//        AbstractImage abstractImage = abstractImageService.read(params.long("id"))
+//        if (abstractImage && abstractImage.referenceSlice) {
+//            String url = imageServerService.window(abstractImage.referenceSlice, params, true)
+//            responseSuccess([url : url])
+//        } else {
+//            responseNotFound("Image", params.id)
+//        }
+//    }
 
     def window() {
         AbstractImage abstractImage = abstractImageService.read(params.long("id"))
         if (abstractImage && abstractImage.referenceSlice) {
-            responseByteArray(imageServerService.window(abstractImage.referenceSlice, params, false))
+            String etag = request.getHeader("If-None-Match") ?: request.getHeader("if-none-match")
+            responseImage(imageServerService.window(abstractImage, params, false, etag))
         } else {
             responseNotFound("Image", params.id)
         }
     }
 
-    def cameraUrl() {
-        AbstractImage abstractImage = abstractImageService.read(params.long("id"))
-        if (abstractImage && abstractImage.referenceSlice) {
-            params.withExterior = false
-            String url = imageServerService.window(abstractImage.referenceSlice, params, true)
-            responseSuccess([url : url])
-        } else {
-            responseNotFound("Image", params.id)
-        }
-    }
-
-    def camera() {
-        AbstractImage abstractImage = abstractImageService.read(params.long("id"))
-        if (abstractImage && abstractImage.referenceSlice) {
-            params.withExterior = false
-            responseByteArray(imageServerService.window(abstractImage.referenceSlice, params, false))
-        } else {
-            responseNotFound("Image", params.id)
-        }
-    }
+//    def cameraUrl() {
+//        AbstractImage abstractImage = abstractImageService.read(params.long("id"))
+//        if (abstractImage && abstractImage.referenceSlice) {
+//            params.withExterior = false
+//            String url = imageServerService.window(abstractImage.referenceSlice, params, true)
+//            responseSuccess([url : url])
+//        } else {
+//            responseNotFound("Image", params.id)
+//        }
+//    }
+//
+//    def camera() {
+//        AbstractImage abstractImage = abstractImageService.read(params.long("id"))
+//        if (abstractImage && abstractImage.referenceSlice) {
+//            params.withExterior = false
+//            responseImage(imageServerService.window(abstractImage.referenceSlice, params, false))
+//        } else {
+//            responseNotFound("Image", params.id)
+//        }
+//    }
 
     def download() {
         AbstractImage abstractImage = abstractImageService.read(params.long("id"))
@@ -314,8 +315,12 @@ class RestAbstractImageController extends RestController {
     @RestApiResponseObject(objectIdentifier = "empty")
     def clearProperties () {
         AbstractImage abstractImage = abstractImageService.read(params.long('id'))
-        imagePropertiesService.clear(abstractImage)
-        responseSuccess([:])
+        if (abstractImage) {
+            imagePropertiesService.clear(abstractImage)
+            responseSuccess([:])
+        } else {
+            responseNotFound("Image", params.id)
+        }
     }
 
     @RestApiMethod(description="Get all image properties (metadata) from underlying file")
@@ -325,19 +330,43 @@ class RestAbstractImageController extends RestController {
     @RestApiResponseObject(objectIdentifier = "empty")
     def populateProperties () {
         AbstractImage abstractImage = abstractImageService.read(params.long('id'))
-        imagePropertiesService.populate(abstractImage)
-        responseSuccess([:])
+        if (abstractImage) {
+            imagePropertiesService.populate(abstractImage)
+            responseSuccess([:])
+        } else {
+            responseNotFound("Image", params.id)
+        }
     }
 
     @RestApiMethod(description="Fill main image field from image properties")
     @RestApiParams(params=[
-            @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH, description = "The image id")
+            @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH, description = "The image id"),
+            @RestApiParam(name="deep", type="boolean", paramType = RestApiParamType.PATH, description = "True to fill property slice fields"),
     ])
     @RestApiResponseObject(objectIdentifier = "empty")
     def extractProperties () {
         AbstractImage abstractImage = abstractImageService.read(params.long('id'))
-        imagePropertiesService.extractUseful(abstractImage)
-        responseSuccess([:])
+        if (abstractImage) {
+            imagePropertiesService.extractUseful(abstractImage, params.boolean('deep', false))
+            responseSuccess([:])
+        } else {
+            responseNotFound("Image", params.id)
+        }
     }
 
+    @RestApiMethod(description="Regenerate main image field from image properties")
+    @RestApiParams(params=[
+            @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH, description = "The image id"),
+            @RestApiParam(name="deep", type="boolean", paramType = RestApiParamType.PATH, description = "True to fill property slice fields"),
+    ])
+    @RestApiResponseObject(objectIdentifier = "empty")
+    def regenerateProperties () {
+        AbstractImage abstractImage = abstractImageService.read(params.long('id'))
+        if (abstractImage) {
+            imagePropertiesService.regenerate(abstractImage, params.boolean('deep', false))
+            responseSuccess([:])
+        } else {
+            responseNotFound("Image", params.id)
+        }
+    }
 }

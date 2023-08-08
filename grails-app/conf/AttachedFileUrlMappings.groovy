@@ -42,6 +42,7 @@ class AttachedFileUrlMappings {
 
 
         // FOR JS
+
         "/api/attachedfileRTEditor.$format"(controller: "restAttachedFile") {
             action = [POST:"uploadFromRTEditor"]
         }
@@ -71,5 +72,10 @@ class AttachedFileUrlMappings {
         "/api/snapshotfileRTEditor.$format"(controller: "restSnapshotFile") {
             action = [POST:"uploadFromRTEditor"]
         }
+
+//        "/api/attachedfileRTEditor.$format"(controller: "restAttachedFile") {
+//            action = [POST:"uploadFromRTEditor"]
+//        }
+
     }
 }

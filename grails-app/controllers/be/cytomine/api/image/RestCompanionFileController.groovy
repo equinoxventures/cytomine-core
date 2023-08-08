@@ -3,7 +3,7 @@ package be.cytomine.api.image
 import be.cytomine.Exception.InvalidRequestException
 
 /*
-* Copyright (c) 2009-2019. Authors: see NOTICE file.
+* Copyright (c) 2009-2022. Authors: see NOTICE file.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -133,13 +133,7 @@ class RestCompanionFileController extends RestController {
 
         AbstractImage abstractImage = abstractImageService.read(id)
         if (abstractImage) {
-            if (abstractImage.dimensions.length() == 3 && !abstractImage.hasProfile()) {
-                //TODO: check image is greyscale
-                responseSuccess(imageServerService.profile(abstractImage).companionFile)
-            }
-            else {
-                responseError(new InvalidRequestException("Abstract image ${abstractImage.id} already has a profile or cannot have one."))
-            }
+            responseSuccess(companionFileService.addProfile(abstractImage))
         }
         else {
             responseNotFound("Image", id)

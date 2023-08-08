@@ -54,6 +54,7 @@ class RestJobController extends RestController {
     def securityACLService
     def jobRuntimeService
     def statsService
+    def transactionService
 
     /**
      * List all job
@@ -158,7 +159,7 @@ class RestJobController extends RestController {
         @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH,description = "The job id")
     ])
     def update() {
-        log.info "update"
+        log.debug "update"
         update(jobService, request.JSON)
     }
 
@@ -257,6 +258,7 @@ class RestJobController extends RestController {
             }
         }
     }
+
 
     /**
      * Delete the full data set build by the job

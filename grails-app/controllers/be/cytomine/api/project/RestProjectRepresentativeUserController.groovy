@@ -53,7 +53,8 @@ class RestProjectRepresentativeUserController extends RestController {
 
     @RestApiMethod(description="Get a project_representative_user")
     @RestApiParams(params=[
-            @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH, description = "The project_representative_user id")
+            @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH, description = "The project_representative_user id"),
+            @RestApiParam(name="idProject", type="long", paramType = RestApiParamType.PATH, description = "The id of project")
     ])
     def show () {
         ProjectRepresentativeUser ref = projectRepresentativeUserService.read(params.long('id'))
@@ -65,6 +66,9 @@ class RestProjectRepresentativeUserController extends RestController {
     }
 
     @RestApiMethod(description="Add a project_representative_user")
+    @RestApiParams(params=[
+            @RestApiParam(name="idProject", type="long", paramType = RestApiParamType.PATH, description = "The id of project")
+    ])
     def add () {
         add(projectRepresentativeUserService, request.JSON)
     }

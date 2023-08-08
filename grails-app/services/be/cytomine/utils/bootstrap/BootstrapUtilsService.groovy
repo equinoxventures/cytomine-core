@@ -69,6 +69,13 @@ class BootstrapUtilsService {
         return result
     }
 
+    def addSqlColumn(def table, def column, def constraints) {
+        def sql = new Sql(dataSource)
+        def result = sql.executeUpdate('ALTER TABLE ' + table + ' ADD COLUMN ' + column + ' ' + constraints + ';')
+        sql.close()
+        return result
+    }
+
     def updateSqlColumnConstraint(def table, def column, def newSqlConstraint) {
         def sql = new Sql(dataSource)
         def result
@@ -186,14 +193,21 @@ class BootstrapUtilsService {
 
     def createFilters(def filters) {
         filters.each {
-            if (!ImageFilter.findByName(it.name)) {
-                ImageFilter filter = new ImageFilter(name: it.name, baseUrl: it.baseUrl, imagingServer: it.imagingServer)
-                if (filter.validate()) {
-                    filter.save(flush:true)
-                } else {
-                    filter.errors?.each {
-                        log.info it
-                    }
+            ImageFilter filter = ImageFilter.findByName(it.name)
+            if (!filter) {
+                filter = new ImageFilter(name: it.name, method: it.method, imagingServer: it.imagingServer)
+            }
+            else {
+                filter.method = it.method
+                filter.imagingServer = it.imagingServer
+                filter.available = it.available
+            }
+
+            if (filter.validate()) {
+                filter.save(flush:true)
+            } else {
+                filter.errors?.each {
+                    log.info it
                 }
             }
         }

@@ -274,16 +274,16 @@ abstract class ModelService {
      */
     def edit(CytomineDomain domain, boolean printMessage) {
         //Build response message
-        log.info "edit"
+        log.debug "edit"
 
-        log.info "beforeUpdate"
+        log.debug "beforeUpdate"
         beforeUpdate(domain)
-        log.info "saveDomain"
+        log.debug "saveDomain"
         saveDomain(domain)
-        log.info "afterUpdate"
+        log.debug "afterUpdate"
         def response = responseService.createResponseMessage(domain, getStringParamsI18n(domain), printMessage, "Edit", domain.getCallBack())
         afterUpdate(domain,response)
-        log.info "response"
+        log.debug "response"
         return response
     }
 
@@ -314,8 +314,8 @@ abstract class ModelService {
                 errors << [data:json[i], message : e.msg]
                 resp = [message : e.msg, status : e.code]
             } catch(Exception e) {
-                log.info e
-                log.info e.printStackTrace()
+                log.error e
+                e.printStackTrace()
                 resp = [message : e.toString(), status : 500]
             }
 
@@ -598,12 +598,14 @@ abstract class ModelService {
         return parameters
     }
 
-    protected def criteriaRequestWithPagination(Class<? extends CytomineDomain> domain, Long max, Long offset, Closure preselection, def searchParameters, String sortedProperty = null, String sortDirection = null){
-        sortedProperty = (sortedProperty != null && ReflectionUtils.findField(domain, sortedProperty)) ? sortedProperty : "created"
-        if(!sortDirection.equals("asc") && !sortDirection.equals("desc")) sortDirection = "asc"
+    protected def criteriaRequestWithPagination(Class<? extends CytomineDomain> domain, Long max, Long offset, Closure preselection, def searchParameters, String sortedProperty = null, String sortDirection = null, Closure sorting = null){
+        if (sorting == null) {
+            sortedProperty = (sortedProperty != null && ReflectionUtils.findField(domain, sortedProperty)) ? sortedProperty : "created"
+            if(!sortDirection.equals("asc") && !sortDirection.equals("desc")) sortDirection = "asc"
 
-        Closure sorting = {
-            order(sortedProperty, sortDirection)
+            sorting = {
+                order(sortedProperty, sortDirection)
+            }
         }
 
         return criteriaRequestWithPagination(domain, max, offset, preselection, searchParameters, sorting)
