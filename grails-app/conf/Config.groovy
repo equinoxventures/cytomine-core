@@ -92,116 +92,6 @@ environments {
     }
 }
 
-// The default codec used to encode data with ${}
-grails.views.default.codec = "none" // none, html, base64
-grails.views.gsp.encoding = "UTF-8"
-grails.converters.encoding = "UTF-8"
-grails.converters.json.default.deep = false
-
-/**
- * Doc config
- */
-grails.doc.title="Cytomine"
-grails.doc.subtitle="Documentation"
-grails.doc.authors="Hoyoux Renaud, Marée Raphaël, Rollus Loïc, Stévens Benjamin"
-grails.doc.license="Apache2"
-grails.doc.copyright="University of liège"
-grails.doc.footer="www.cytomine.org"
-
-// enable Sitemesh preprocessing of GSP pages
-grails.views.gsp.sitemesh.preprocess = true
-// scaffolding templates configuration
-grails.scaffolding.templates.domainSuffix = 'Instance'
-
-// Set to false to use the new Grails 1.2 JSONBuilder in the render method
-grails.json.legacy.builder = false
-// enabled native2ascii conversion of i18n properties files
-grails.enable.native2ascii = true
-// whether to install the java.util.logging bridge for sl4j. Disable for AppEngine!
-grails.logging.jul.usebridge = true
-// packages to include in Spring bean scanning
-grails.spring.bean.packages = []
-
-cytomine.jobdata.filesystem = false
-cytomine.jobdata.filesystemPath = "algo/data/"
-
-// RabbitMQ server
-grails.messageBrokerServerURL = "localhost:5672"
-environments {
-    test {
-        grails.messageBrokerServerURL = "localhost:5672"
-    }
-}
-// set per-environment serverURL stem for creating absolute links
-environments {
-    scratch {
-        grails.serverURL = "http://localhost:8080"
-        grails.uploadURL = "http://localhost:9090"
-
-        grails.imageServerURL = ["http://localhost:9080"]
-        grails.retrievalServerURL = ["http://localhost:9097"]
-        grails.converters.default.pretty.print = true
-        grails.plugin.springsecurity.useBasicAuth = false
-        grails.resources.adhoc.patterns = ['/images/*', '/js/*']
-    }
-    production {
-        grails.UIURL = null
-        grails.serverURL = "http://localhost-core"
-        grails.uploadURL = "http://localhost:9090"
-        grails.plugin.springsecurity.useBasicAuth = false
-        grails.resources.adhoc.patterns = ['/images/*', '/js/*','/css/jsondoc/*']
-        grails.retrievalServerURL = []
-    }
-    development {
-        grails.UIURL = "http://localhost:8080"
-        grails.serverURL = "http://localhost:8080"
-        grails.uploadURL = "http://localhost-upload"
-        grails.imageServerURL = ["http://localhost-ims"]
-        grails.retrievalServerURL = ["http://localhost-retrieval"]
-        grails.converters.default.pretty.print = true
-        grails.plugin.springsecurity.useBasicAuth = false
-        grails.resources.adhoc.patterns = ['/images/*', '/js/*','/css/jsondoc/*']
-        grails.readOnlyProjectsByDefault = true
-        grails.adminPassword="admin"
-        grails.ImageServerPrivateKey="ABC"
-        grails.ImageServerPublicKey="DEF"
-        grails.adminPrivateKey="GHI"
-        grails.adminPublicKey="JKL"
-        grails.superAdminPrivateKey="MNO"
-        grails.superAdminPublicKey="PQR"
-        grails.rabbitMQPrivateKey="STU"
-        grails.rabbitMQPublicKey="VWX"
-    }
-    test {
-        grails.serverURL = "http://localhost:8090"
-        grails.imageServerURL = ["http://localhost:9080"]
-        grails.uploadURL = "http://localhost-upload"
-        grails.retrievalServerURL = ["http://localhost-retrieval"]
-        grails.plugin.springsecurity.useBasicAuth = true
-        grails.plugin.springsecurity.basic.realmName = "Cytomine log"
-        grails.resources.adhoc.patterns = ['/images/*', '/css/*', '/js/*', '/plugins/*']
-        grails.readOnlyProjectsByDefault = true
-
-        grails.adminPassword = "password"
-        grails.ImageServerPrivateKey=""
-        grails.ImageServerPublicKey=""
-        grails.adminPrivateKey="XXX"
-        grails.adminPublicKey="XXX"
-        grails.superAdminPrivateKey="X"
-        grails.superAdminPublicKey="X"
-        grails.rabbitMQPrivateKey="XXX"
-        grails.rabbitMQPublicKey="XXX"
-    }
-    testrun {
-        grails.serverURL = "http://localhost:8090"
-        grails.uploadURL = "http://localhost:9090"
-        grails.imageServerURL = ["http://localhost:9085"]
-        grails.converters.default.pretty.print = true
-        grails.plugin.springsecurity.useBasicAuth = false
-        grails.resources.adhoc.patterns = ['/images/*', '/css/*', '/js/*', '/plugins/*']
-    }
-}
-
 coverage {
     enableByDefault = false
     xml = true
@@ -488,6 +378,7 @@ cytomine.customUI.project = [
         "project-explore-annotation-attached-files":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-explore-annotation-creation-info":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-explore-annotation-tracks":["ADMIN_PROJECT":true, "CONTRIBUTOR_PROJECT":true],
+        "project-explore-annotation-tags": ["ADMIN_PROJECT": true, "CONTRIBUTOR_PROJECT": true],
 
         //annotation tools
         "project-tools-main":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
@@ -515,6 +406,7 @@ cytomine.customUI.project = [
         "project-tools-screenshot":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-tools-snapshot":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-tools-draw-snapshot":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
+
         "project-tools-copy-paste":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-tools-undo-redo":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
 

@@ -28,7 +28,6 @@ import be.cytomine.security.UserJob
 import be.cytomine.sql.AlgoAnnotationListing
 import be.cytomine.sql.ReviewedAnnotationListing
 import be.cytomine.meta.AttachedFile
-import be.cytomine.meta.SnapshotFile
 import be.cytomine.utils.ModelService
 import be.cytomine.utils.Task
 import grails.converters.JSON
