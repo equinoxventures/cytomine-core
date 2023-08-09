@@ -27,7 +27,6 @@ environments {
     development {
         // Update the file path so that it matches the generated configuration file in your bootstrap
         grails.config.locations = [
-                "file:${userHome}/dev/Cytomine-bootstrap/configs/core/cytomineconfig.groovy",
                 "file:${userHome}/.grails/cytomineconfig.groovy"
         ]
     }
