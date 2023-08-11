@@ -33,7 +33,7 @@ jobs:
         docker cp $containerId:/app/target/cytomine.war ./ci
         docker rm $containerId
         docker build --rm -f scriptsCI/docker/core/Dockerfile -t  seapapa/core_pims:${{ steps.commit.outputs.short }} .
-        docker tag seapapa/core:${{ steps.commit.outputs.short }} seapapa/core_pims:latest
+        docker tag seapapa/core_pims:${{ steps.commit.outputs.short }} seapapa/core_pims:latest
 
     - name: Docker push
       run: | 
