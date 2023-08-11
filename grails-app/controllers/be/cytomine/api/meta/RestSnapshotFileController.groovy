@@ -1,5 +1,10 @@
 package be.cytomine.api.meta
 
+import be.cytomine.Exception.InvalidRequestException
+import be.cytomine.Exception.NotModifiedException
+import be.cytomine.Exception.ObjectNotFoundException
+import be.cytomine.Exception.ServerException
+
 /*
 * Copyright (c) 2009-2022. Authors: see NOTICE file.
 *
@@ -18,9 +23,7 @@ package be.cytomine.api.meta
 
 import be.cytomine.api.RestController
 import be.cytomine.image.AbstractImage
-import be.cytomine.image.ImageInstance
 import be.cytomine.image.SliceInstance
-import be.cytomine.meta.AttachedFile
 import be.cytomine.meta.Configuration
 import be.cytomine.project.Project
 import be.cytomine.AnnotationDomain
@@ -28,12 +31,17 @@ import be.cytomine.CytomineDomain
 import be.cytomine.Exception.WrongArgumentException
 import be.cytomine.meta.SnapshotFile
 import be.cytomine.security.SecUser
-import be.cytomine.utils.GeometryUtils
+import be.cytomine.utils.ImageResponse
 import com.vividsolutions.jts.geom.Geometry
 import com.vividsolutions.jts.io.WKTReader
 import grails.converters.JSON
+import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import org.mortbay.jetty.Request
+import groovyx.net.http.ContentType
+import groovyx.net.http.HTTPBuilder
+import groovyx.net.http.HttpResponseDecorator
+import groovyx.net.http.Method
+import org.apache.commons.io.IOUtils
 import org.restapidoc.annotation.*
 import org.restapidoc.pojo.RestApiParamType
 import org.springframework.web.multipart.support.AbstractMultipartHttpServletRequest
@@ -61,6 +69,7 @@ class RestSnapshotFileController extends RestController {
     def configurationService
     def imageInstanceService
     def imageRetrievalService
+    def simplifyGeometryService
 
     @RestApiMethod(description="List all snapshot file available", listing=true)
     def list() {
@@ -109,33 +118,22 @@ class RestSnapshotFileController extends RestController {
     def getSnapshot() {
         def jsonBody = new JsonSlurper().parseText(request.reader.text)
         SliceInstance slice = SliceInstance.read(jsonBody.slice)
-        def server = grailsApplication.config.grails.imageServerURL[0]
-        def uri = "/slice/crop.jpg"
-        def geometry = new WKTReader().read(jsonBody.location)
-        def boundaries = params.boundaries
-        if (!boundaries && geometry) {
-            boundaries = GeometryUtils.getGeometryBoundaries(geometry)
-        }
-        def parameters = [
-                fif : slice.path,
-                mimeType : slice.mimeType,
-                topLeftX : boundaries.topLeftX,
-                topLeftY : boundaries.topLeftY,
-                width : boundaries.width,
-                height : boundaries.height,
-                location: geometry,
-                imageWidth : jsonBody.width,
-                imageHeight : jsonBody.height,
-                format : 'jpg',
-                maxSize : '1024'
-        ]
-        def snapshotUrl=makeGetUrl(uri, server, parameters)
-        def url = new URL(snapshotUrl)
-        def conn = url.openConnection()
-        def input = conn.inputStream
-        def result= snapshotFileService.add(jsonBody.imageName,input.getBytes(),null,jsonBody.image,jsonBody.imageClass)
-        responseSuccess(result)
 
+        def uri = "/image/" + slice.baseSlice.uploadedFile.filename +"/annotation/crop"
+        def server = grailsApplication.config.grails.imageServerURL[0]
+        def geometry = new WKTReader().read(jsonBody.location as String)
+        def wkt = simplifyGeometryService.simplifyPolygonForCrop(geometry).toText()
+        def parameters = [
+                length: 512,
+                annotations: [geometry: wkt],
+                z_slices: 0,
+                timepoints: 0,
+                background_transparency: 0
+        ]
+        def headers = ['X-Annotation-Origin': 'LEFT_BOTTOM']
+        def request = makeRequest(uri, server, parameters, 'image/jpeg', headers)
+        def result= snapshotFileService.add(jsonBody.imageName,request.content,null,jsonBody.image,jsonBody.imageClass)
+        responseSuccess(result)
     }
 
     @RestApiMethod(description="List all snapshot file for a given domain", listing=true)
@@ -273,10 +271,62 @@ class RestSnapshotFileController extends RestController {
 
         delete(snapshotFileService, JSON.parse("{id : $params.id}"),null)
     }
+    private static def makeRequest(def path, def server, def parameters,
+                                   def format, def  customHeaders=[:]) {
+        parameters = filterParameters(parameters)
+        def url = makeGetUrl(path, server, parameters)
+        def responseContentType = format
+        def okClosure = { resp, stream ->
+            return new ImageResponse(IOUtils.toByteArray(stream), extractPIMSHeaders(resp.headers))
+        }
+        def notModifiedClosure = { resp ->
+            throw new NotModifiedException(extractPIMSHeaders(resp.headers))
+        }
+        def badRequestClosure = { resp, json ->
+            log.error(json)
+            throw new InvalidRequestException("$url returned a 400 Bad Request")
+        }
+        def notFoundClosure = { resp ->
+            log.error(resp)
+            throw new ObjectNotFoundException("$url returned a 404 Not found")
+        }
+        def internalServerErrorClosure = { resp ->
+            log.error(resp)
+            throw new ServerException("$url returned a 500 Internal error")
+        }
+        def http = new HTTPBuilder(server)
 
+        http.request(Method.POST, responseContentType) {
+            uri.path = path
+            requestContentType = ContentType.JSON
+            body = JsonOutput.toJson(parameters)
+            headers = customHeaders
+
+            response.'200' = okClosure
+            response.'304' = notModifiedClosure
+            response.'400' = badRequestClosure
+            response.'404' = notFoundClosure
+            response.'422' = badRequestClosure
+            response.'500' = internalServerErrorClosure
+        }
+    }
+    private static def extractPIMSHeaders(HttpResponseDecorator.HeadersDecorator headers) {
+        def names = ["Cache-Control", "ETag", "X-Annotation-Origin", "X-Image-Size-Limit"]
+        def extractedHeaders = [:]
+        names.each { name ->
+            def h = headers[name] ?: headers[name.toLowerCase()]
+            if (h) {
+                extractedHeaders << [(name): h.getValue()]
+            }
+        }
+        return extractedHeaders
+    }
     private static def makeGetUrl(def uri, def server, def parameters) {
         parameters = filterParameters(parameters)
         String query = parameters.collect { key, value ->
+            if (value instanceof List)
+                value = value.join(',')
+
             if (value instanceof Geometry)
                 value = value.toText()
 
@@ -287,6 +337,7 @@ class RestSnapshotFileController extends RestController {
 
         return "$server$uri?$query"
     }
+
     private static def filterParameters(parameters) {
         parameters.findAll { it.value != null && it.value != ""}
     }
