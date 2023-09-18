@@ -51,13 +51,15 @@ class SnapshotFileService extends ModelService {
         SnapshotFile.read(id)
     }
 
-    def add(String filename,byte[] data, String key, Long domainIdent,String domainClassName) {
+    def add(String filename,byte[] data, String key, String location,String  previewUrl,Long domainIdent,String domainClassName) {
         SnapshotFile file = new SnapshotFile()
         file.domainIdent =  domainIdent
         file.domainClassName = domainClassName
         file.filename = filename
         file.data = data
         file.key = key
+        file.location = location
+        file.previewUrl = previewUrl
         saveDomain(file)
         file
     }

@@ -133,7 +133,10 @@ class RestSnapshotFileController extends RestController {
         def url = new URL(snapshotUrl)
         def conn = url.openConnection()
         def input = conn.inputStream
-        def result= snapshotFileService.add(jsonBody.imageName,input.getBytes(),null,jsonBody.image,jsonBody.imageClass)
+        parameters.maxSize = 256
+        def previewUrl=makeGetUrl(uri, server, parameters)
+        def result= snapshotFileService.add(jsonBody.imageName,input.getBytes(),null,
+                jsonBody.location,previewUrl,jsonBody.image,jsonBody.imageClass)
         responseSuccess(result)
 
     }
@@ -221,7 +224,7 @@ class RestSnapshotFileController extends RestController {
             } else {
                 securityACLService.checkFullOrRestrictedForOwner(domainIdent,domainClassName, "user")
             }
-            def result = snapshotFileService.add(filename,f.getBytes(),key,domainIdent,domainClassName)
+            def result = snapshotFileService.add(filename,f.getBytes(),key,null,null,domainIdent,domainClassName)
             responseSuccess(result)
         } else {
             responseError(new WrongArgumentException("No snapshot File attached"))
