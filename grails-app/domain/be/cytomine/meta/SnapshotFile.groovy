@@ -54,10 +54,9 @@ class SnapshotFile extends CytomineDomain {
 
     static constraints = {
         domainClassName(nullable: false, blank:  false)
-        previewUrl(maxSize: 1000)
         key(nullable: true)
         location(nullable: true)
-        previewUrl(nullable: true)
+        previewUrl(nullable: true,maxSize: 1000)
     }
     static mapping = {
         id generator: "assigned"

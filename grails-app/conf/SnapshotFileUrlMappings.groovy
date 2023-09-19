@@ -20,32 +20,40 @@
  * Date: 10/10/11
  * Time: 13:49
  */
-class AttachedFileUrlMappings {
+class SnapshotFileUrlMappings {
 
     static mappings = {
 
-        "/api/attachedfile.$format"(controller: "restAttachedFile") {
+
+        "/api/snapshotfile.$format"(controller: "restSnapshotFile") {
             action = [GET:"list", POST:"upload",PUT:"upload"]
         }
-
-        "/api/domain/$domainClassName/$domainIdent/attachedfile.$format"(controller: "restAttachedFile") {
+        "/api/webhook.$format"(controller: "restSnapshotFile") {
+            action = [ POST:"webhook"]
+        }
+        "/api/sliceSnapshot.$format"(controller: "restSnapshotFile") {
+            action = [ POST:"getSnapshot"]
+        }
+        "/api/domain/$domainClassName/$domainIdent/snapshotfile.$format"(controller: "restSnapshotFile") {
             action = [GET:"listByDomain"]
         }
 
-        "/api/attachedfile/$id.$format"(controller: "restAttachedFile") {
+        "/api/snapshotfile/$id.$format"(controller: "restSnapshotFile") {
             action = [GET:"show", DELETE: "delete"]
         }
 
-        "/api/attachedfile/$id/download"(controller: "restAttachedFile") {
+        "/api/snapshotfile/$id/download"(controller: "restSnapshotFile") {
             action = [GET:"download"]
         }
 
-
-        // FOR JS
-        "/api/attachedfileRTEditor.$format"(controller: "restAttachedFile") {
-            action = [POST:"uploadFromRTEditor"]
+        "/api/snapshotfile/$id/download_png"(controller: "restSnapshotFile") {
+            action = [GET:"downloadPNG"]
         }
 
+        // FOR JS
+        "/api/snapshotfileRTEditor.$format"(controller: "restSnapshotFile") {
+            action = [POST:"uploadFromRTEditor"]
+        }
 
     }
 }
