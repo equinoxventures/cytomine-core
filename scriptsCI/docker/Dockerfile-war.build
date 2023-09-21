@@ -1,4 +1,4 @@
-FROM openjdk:8u292-slim AS imageWithDependencies
+FROM openjdk:8u292-slim AS image_with_dependencies
 
 RUN apt-get update -y && apt-get install wget unzip -y
 RUN mkdir /tools
@@ -20,7 +20,7 @@ RUN cd /app && \
     /tools/grails-2.4.4/bin/grails compile --stacktrace
 
 
-FROM imageWithDependencies
+FROM image_with_dependencies
 
 COPY . /app
 

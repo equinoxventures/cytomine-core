@@ -60,9 +60,7 @@ class ConfigurationService extends ModelService {
     }
 
     def add(def json) {
-        if(json.key != "SCROLL_ZOOM"){
-            securityACLService.checkAdmin(cytomineService.currentUser)
-        }
+        checkIsConfig(json.key)
         SecUser currentUser = cytomineService.getCurrentUser()
         Command command = new AddCommand(user: currentUser)
         return executeCommand(command,null,json)
@@ -91,9 +89,7 @@ class ConfigurationService extends ModelService {
      * @return Response structure (code, old domain,..)
      */
     def delete(Configuration domain, Transaction transaction = null, Task task = null, boolean printMessage = true) {
-        if(domain.key != "SCROLL_ZOOM"){
-            securityACLService.checkAdmin(cytomineService.currentUser)
-        }
+        checkIsConfig(domain.key)
         SecUser currentUser = cytomineService.getCurrentUser()
         Command c = new DeleteCommand(user: currentUser,transaction:transaction)
         return executeCommand(c,domain,null)
@@ -106,7 +102,13 @@ class ConfigurationService extends ModelService {
                 && config.readingRole.equals(Configuration.Role.USER)) return;
         else throw new ForbiddenException("You don't have the right to read this resource!")
     }
-
+    private void checkIsConfig(String config){
+        if(config.contains("SCROLL_ZOOM")){
+            securityACLService.checkUser(cytomineService.currentUser)
+        }else {
+            securityACLService.checkAdmin(cytomineService.currentUser)
+        }
+    }
     def getStringParamsI18n(def domain) {
         return [domain.key]
     }

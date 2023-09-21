@@ -43,6 +43,10 @@ class SnapshotFile extends CytomineDomain {
 
     String key
 
+    String location
+
+    String previewUrl
+
     @RestApiObjectFields(params=[
         @RestApiObjectField(apiFieldName = "url", description = "URL to get this file",allowedType = "string",useForCreation = false)
     ])
@@ -51,6 +55,8 @@ class SnapshotFile extends CytomineDomain {
     static constraints = {
         domainClassName(nullable: false, blank:  false)
         key(nullable: true)
+        location(nullable: true)
+        previewUrl(nullable: true,maxSize: 1000)
     }
     static mapping = {
         id generator: "assigned"
@@ -88,6 +94,9 @@ class SnapshotFile extends CytomineDomain {
         returnArray['url'] = "/api/snapshotfile/${domain?.id}/download"
         returnArray['filename'] = domain?.filename
         returnArray['key'] = domain?.key
+        returnArray['location'] = domain?.location
+        returnArray['previewUrl'] = domain?.previewUrl
+
         return returnArray
     }
 }

@@ -38,6 +38,8 @@ import org.restapidoc.annotation.*
 import org.restapidoc.pojo.RestApiParamType
 import org.springframework.web.multipart.support.AbstractMultipartHttpServletRequest
 
+import java.awt.image.BufferedImage
+
 import static org.springframework.security.acls.domain.BasePermission.DELETE
 import static org.springframework.security.acls.domain.BasePermission.READ
 import static org.springframework.security.acls.domain.BasePermission.WRITE
@@ -47,6 +49,8 @@ import org.springframework.http.MediaType
 import org.apache.commons.codec.binary.Base64;
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.HttpClientErrorException
+
+import javax.imageio.ImageIO
 
 /**
  * Controller for a description (big text data/with html format) on a specific domain
@@ -116,6 +120,7 @@ class RestSnapshotFileController extends RestController {
         if (!boundaries && geometry) {
             boundaries = GeometryUtils.getGeometryBoundaries(geometry)
         }
+        //TODO: save the image as png format, can get more complete information, jpg through the format conversion
         def parameters = [
                 fif : slice.path,
                 mimeType : slice.mimeType,
@@ -133,7 +138,10 @@ class RestSnapshotFileController extends RestController {
         def url = new URL(snapshotUrl)
         def conn = url.openConnection()
         def input = conn.inputStream
-        def result= snapshotFileService.add(jsonBody.imageName,input.getBytes(),null,jsonBody.image,jsonBody.imageClass)
+        parameters.maxSize = 256
+        def previewUrl=makeGetUrl(uri, server, parameters)
+        def result= snapshotFileService.add(jsonBody.imageName,input.getBytes(),null,
+                jsonBody.location,previewUrl,jsonBody.image,jsonBody.imageClass)
         responseSuccess(result)
 
     }
@@ -190,6 +198,26 @@ class RestSnapshotFileController extends RestController {
         }
     }
 
+    @RestApiMethod(description="Download a PNG file for a given snapshot file")
+    @RestApiParams(params=[
+            @RestApiParam(name="id", type="long", paramType = RestApiParamType.PATH, description = "The snapshot file id")
+    ])
+    @RestApiResponseObject(objectIdentifier = "file")
+    def downloadPNG() {
+        SnapshotFile attached = snapshotFileService.read(params.get('id'))
+        if(!attached) {
+            responseNotFound("SnapshotFile",params.get('id'))
+        } else {
+            ByteArrayInputStream input = new ByteArrayInputStream(attached.data)
+            BufferedImage image = ImageIO.read(input)
+            ByteArrayOutputStream output = new ByteArrayOutputStream()
+            ImageIO.write(image, "png", output)
+            byte[] data = output.toByteArray()
+            def filename = attached.filename.replaceAll(/\.jpg$/, ".png")
+            responseFile(filename, data)
+        }
+    }
+
     @RestApiMethod(description="Upload a file for a domain")
     @RestApiParams(params=[
         @RestApiParam(name="domainIdent", type="long", paramType = RestApiParamType.PATH, description = "The domain id"),
@@ -221,7 +249,7 @@ class RestSnapshotFileController extends RestController {
             } else {
                 securityACLService.checkFullOrRestrictedForOwner(domainIdent,domainClassName, "user")
             }
-            def result = snapshotFileService.add(filename,f.getBytes(),key,domainIdent,domainClassName)
+            def result = snapshotFileService.add(filename,f.getBytes(),key,null,null,domainIdent,domainClassName)
             responseSuccess(result)
         } else {
             responseError(new WrongArgumentException("No snapshot File attached"))
@@ -250,7 +278,7 @@ class RestSnapshotFileController extends RestController {
         } else {
             securityACLService.checkFullOrRestrictedForOwner(domainIdent,domainClassName)
         }
-        def result = snapshotFileService.add(filename,upload.getBytes(),key,domainIdent,domainClassName)
+        def result = snapshotFileService.add(filename,upload.getBytes(),key,null,null,domainIdent,domainClassName)
 
         responseSuccess(result)
 
