@@ -36,6 +36,8 @@ import groovy.json.JsonSlurper
 import org.mortbay.jetty.Request
 import org.restapidoc.annotation.*
 import org.restapidoc.pojo.RestApiParamType
+import org.springframework.http.client.SimpleClientHttpRequestFactory
+import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.support.AbstractMultipartHttpServletRequest
 
 import java.awt.image.BufferedImage
@@ -92,9 +94,13 @@ class RestSnapshotFileController extends RestController {
             String authHeader = "Basic " + new String(encodedAuth);
             headers.set("Authorization", authHeader);
         }
-        HttpEntity<String> entity = new HttpEntity<String>(jsonBody, headers)
-        RestTemplate restTemplate = new RestTemplate()
         try {
+            HttpEntity<String> entity = new HttpEntity<String>(jsonBody, headers)
+            RestTemplate restTemplate = new RestTemplate()
+            SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory()
+            requestFactory.setConnectTimeout(1000)  // 5000 milliseconds for connection timeout
+            requestFactory.setReadTimeout(2000)    // 10000 milliseconds for read timeout
+            restTemplate.setRequestFactory(requestFactory)
             String response = restTemplate.postForObject(url, entity, String.class)
             String jsonString = """
                 {
@@ -102,7 +108,7 @@ class RestSnapshotFileController extends RestController {
                     "response": ${response},               
                 }
                 """
-            def json = grails.converters.JSON.parse(jsonString)
+            def json = JSON.parse(jsonString)
             responseSuccess(json)
         } catch (HttpClientErrorException e) {
             responseError(new WrongArgumentException(e.getResponseBodyAsString()))
@@ -111,16 +117,22 @@ class RestSnapshotFileController extends RestController {
     }
     @RestApiMethod(description="Get the snapshot from the image by location")
     def getSnapshot() {
-        def jsonBody = new JsonSlurper().parseText(request.reader.text)
-        SliceInstance slice = SliceInstance.read(jsonBody.slice)
+        def f = ((AbstractMultipartHttpServletRequest) request).getFile('files[]')
         def server = grailsApplication.config.grails.imageServerURL[0]
+        def domainClassName = ((AbstractMultipartHttpServletRequest) request).getParameter('domainClassName')
+        def imageSlice = ((AbstractMultipartHttpServletRequest) request).getParameter('slice')
+        def location = ((AbstractMultipartHttpServletRequest) request).getParameter('location')
+        def image = ((AbstractMultipartHttpServletRequest) request).getParameter('image') as Integer
+        def width = ((AbstractMultipartHttpServletRequest) request).getParameter('width')
+        def height = ((AbstractMultipartHttpServletRequest) request).getParameter('height')
+        def snapshotName = ((AbstractMultipartHttpServletRequest) request).getParameter('snapshotName')
+        SliceInstance slice = SliceInstance.read(imageSlice)
         def uri = "/slice/crop.jpg"
-        def geometry = new WKTReader().read(jsonBody.location)
+        def geometry = new WKTReader().read(location)
         def boundaries = params.boundaries
         if (!boundaries && geometry) {
             boundaries = GeometryUtils.getGeometryBoundaries(geometry)
         }
-        //TODO: save the image as png format, can get more complete information, jpg through the format conversion
         def parameters = [
                 fif : slice.path,
                 mimeType : slice.mimeType,
@@ -129,19 +141,18 @@ class RestSnapshotFileController extends RestController {
                 width : boundaries.width,
                 height : boundaries.height,
                 location: geometry,
-                imageWidth : jsonBody.width,
-                imageHeight : jsonBody.height,
+                imageWidth : width,
+                imageHeight : height,
                 format : 'jpg',
-                maxSize : '1024'
+                maxSize : 256
         ]
-        def snapshotUrl=makeGetUrl(uri, server, parameters)
-        def url = new URL(snapshotUrl)
-        def conn = url.openConnection()
-        def input = conn.inputStream
-        parameters.maxSize = 256
+//        def snapshotUrl=makeGetUrl(uri, server, parameters)
+//        def url = new URL(snapshotUrl)
+//        def conn = url.openConnection()
+//        def input = conn.inputStream
         def previewUrl=makeGetUrl(uri, server, parameters)
-        def result= snapshotFileService.add(jsonBody.imageName,input.getBytes(),null,
-                jsonBody.location,previewUrl,jsonBody.image,jsonBody.imageClass)
+        def result= snapshotFileService.add(snapshotName,f.getBytes(),null, location,previewUrl,image,domainClassName)
+        log.info "Uploaded $snapshotName "
         responseSuccess(result)
 
     }
