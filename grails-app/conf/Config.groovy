@@ -465,6 +465,8 @@ cytomine.customUI.project = [
         "project-tools-screenshot":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-tools-snapshot":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-tools-draw-snapshot":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
+        "project-tools-1mm^2-circle":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
+        "project-tools-1mm^2-square":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-tools-copy-paste":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-tools-undo-redo":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
 
