@@ -716,6 +716,7 @@ class UserAnnotationListing extends AnnotationListing {
         wkt: [
                 location: 'a.wkt_location',
                 geometryCompression: 'a.geometry_compression',
+                geometry : 'a.geometry',
         ],
         gis: [
                 area: 'area',
