@@ -43,6 +43,9 @@ class UserAnnotation extends AnnotationDomain implements Serializable {
     @RestApiObjectField(description = "The number of reviewed annotations for this annotation", useForCreation = false)
     Integer countReviewedAnnotations = 0
 
+    @RestApiObjectField(description = "save geometry", useForCreation = false)
+    String geometry
+
     @RestApiObjectFields(params = [
             @RestApiObjectField(apiFieldName = "cropURL", description = "URL to get the annotation crop", allowedType = "string", useForCreation = false),
             @RestApiObjectField(apiFieldName = "smallCropURL", description = "URL to get a small annotation crop (<256px)", allowedType = "string", useForCreation = false),
@@ -51,6 +54,7 @@ class UserAnnotation extends AnnotationDomain implements Serializable {
             @RestApiObjectField(apiFieldName = "reviewed", description = "True if annotation has at least one review", allowedType = "boolean", useForCreation = false)
     ])
     static constraints = {
+        geometry(nullable: true)
     }
 
     static mapping = {
@@ -181,7 +185,7 @@ class UserAnnotation extends AnnotationDomain implements Serializable {
         domain.user = JSONUtils.getJSONAttrDomain(json, "user", new SecUser(), true)
 
         domain.geometryCompression = JSONUtils.getJSONAttrDouble(json, 'geometryCompression', 0)
-
+        domain.geometry = json.geometry
         if (json.location && json.location instanceof Geometry) {
             domain.location = json.location
         }
@@ -219,6 +223,7 @@ class UserAnnotation extends AnnotationDomain implements Serializable {
         returnArray['imageURL'] = UrlApi.getAnnotationURL(imageinstance?.project?.id, imageinstance?.id, domain?.id) //TODO: slice
         returnArray['reviewed'] = domain?.hasReviewedAnnotation()
         returnArray['track'] = domain?.tracksId()
+        returnArray['geometry'] = domain?.geometry
         return returnArray
     }
 
