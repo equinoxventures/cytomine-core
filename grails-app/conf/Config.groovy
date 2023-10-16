@@ -471,6 +471,9 @@ cytomine.customUI.project = [
         "project-tools-1mm^2-square":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-tools-copy-paste":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
         "project-tools-undo-redo":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
+        "project-tools-annot-dimension":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
+        "project-tools-snapshot-dimension":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
+
 
         //graphs
         "project-annotations-term-piegraph":["ADMIN_PROJECT":true,"CONTRIBUTOR_PROJECT":true],
