@@ -127,6 +127,8 @@ class User extends SecUser {
         domain.created = JSONUtils.getJSONAttrDate(json, 'created')
         domain.updated = JSONUtils.getJSONAttrDate(json, 'updated')
         domain.enabled = JSONUtils.getJSONAttrBoolean(json,'enabled', true)
+        domain.scrollZoom = json.scrollZoom
+        domain.biggerButtons = json.biggerButtons
 
         if (domain.getPublicKey() == null || domain.getPrivateKey() == null || json.publicKey == "" || json.privateKey == "") {
             domain.generateKeys()
